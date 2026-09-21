@@ -45,11 +45,11 @@ export default function Passport() {
       {/* home bases */}
       <Reveal className="mt-10 grid gap-4 md:grid-cols-3">
         {profile.bases.map((b, i) => (
-          <div key={b.code} className="flex items-center gap-5 rounded-xl border border-line px-5 py-4">
+          <div key={b.code} className="flex items-center gap-5 rounded-xl border border-line px-5 py-5">
             <span className="font-display text-4xl tracking-tight text-gold-2">{b.code}</span>
             <div>
-              <div className="font-mono text-[10px] tracking-[0.28em] text-fg-dim">HOME BASE 0{i + 1} · {b.city.toUpperCase()}</div>
-              <div className="mt-1 text-[14px] text-fg-muted">{b.note}</div>
+              <div className="font-mono text-[10px] tracking-[0.28em] text-fg-dim">HOME BASE 0{i + 1}</div>
+              <div className="mt-1 text-[15px] text-paper/90">{b.city}</div>
             </div>
           </div>
         ))}

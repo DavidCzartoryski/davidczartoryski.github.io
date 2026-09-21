@@ -3,9 +3,18 @@
 import { useState } from "react";
 import geo from "@/data/geo.generated.json";
 import countries from "@/data/countries.json";
+import { profile } from "@/data/site";
 import Plane from "./Plane";
 
 const nameOf = new Map(countries.map((c) => [c.slug, c.name]));
+
+/** Home-base airport code to the projected city point it maps onto. */
+const CITY_POINT: Record<string, string> = {
+  BOS: "boston",
+  WAW: "warsaw",
+  MXP: "milan",
+  SFO: "menloPark",
+};
 
 /** Quadratic arc between two projected points, bowed toward the top. */
 function arc(a: { x: number; y: number }, b: { x: number; y: number }) {
@@ -25,11 +34,11 @@ export default function WorldMap({
   const [hover, setHover] = useState<string | null>(null);
   const active = hover ?? highlight ?? null;
   const cp = geo.cityPoints as Record<string, { x: number; y: number }>;
-  const routes = [
-    [cp.boston, cp.warsaw],
-    [cp.boston, cp.milan],
-    [cp.boston, cp.menloPark],
-  ];
+  // Home bases, and the legs between Boston and each of the others.
+  const bases = profile.bases
+    .map((b) => ({ code: b.code, pt: cp[CITY_POINT[b.code]] }))
+    .filter((b) => b.pt);
+  const routes = bases.filter((b) => b.code !== "BOS").map((b) => [cp.boston, b.pt]);
   const activeMarker = active ? geo.markers.find((m) => m.slug === active) : null;
 
   return (
@@ -82,13 +91,8 @@ export default function WorldMap({
         ))}
 
         {/* home bases */}
-        {[
-          ["boston", "BOS"],
-          ["warsaw", "WAW"],
-          ["milan", "MXP"],
-          ["menloPark", "SFO"],
-        ].map(([k, code]) => (
-          <g key={k} transform={`translate(${cp[k].x} ${cp[k].y})`} className="pointer-events-none">
+        {bases.map(({ code, pt }) => (
+          <g key={code} transform={`translate(${pt.x} ${pt.y})`} className="pointer-events-none">
             <circle r="3" fill="#d63a2f" stroke="#0b1020" strokeWidth="0.8" />
             <text x="6" y="-5" fontFamily="var(--font-mono)" fontSize="11" fill="#f3ead8" letterSpacing="1.5">
               {code}

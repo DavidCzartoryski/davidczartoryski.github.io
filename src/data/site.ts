@@ -10,9 +10,9 @@ export const profile = {
   degreeNote: "Petition in progress to BSBA Finance with a CS minor",
   graduation: "May 2027",
   bases: [
-    { code: "SFO", city: "San Francisco", note: "Work, the Bay Area, where the next leg lands" },
-    { code: "BOS", city: "Boston", note: "School, EternalTap, the MBTA" },
-    { code: "WAW", city: "Warsaw", note: "Heritage, Polish Club, real estate" },
+    { code: "SFO", city: "San Francisco" },
+    { code: "BOS", city: "Boston" },
+    { code: "WAW", city: "Warsaw" },
   ],
   email: "czartoryski.d@northeastern.edu",
   linkedin: "https://www.linkedin.com/in/davidczartoryski",
@@ -278,26 +278,23 @@ export const ventureDeep: Record<string, VentureDeep> = {
     demo: "indian-run",
     sections: [
       {
-        heading: "The drill",
+        heading: "Why it is hard to catch",
         body: [
-          "There is a conditioning run wrestlers and most team-sport athletes know as the Indian run. The team jogs in a single-file line at an easy pace. The runner at the very back sprints up the outside, passes everyone, and takes over the front, setting the pace for the pack. As soon as they arrive, the new last runner starts their sprint. The drill ends once everyone has rotated to the front some fixed number of times, say three.",
-          "Here is the part that matters: the drill is not over until the slowest person has done all of their sprints. Everyone else can be fast. It changes nothing. Five strong runners and one who is gassed turns a five-minute drill into fifteen, and the other five spend that time jogging, waiting for a turn that cannot start early.",
+          "Nothing crashes. The job runs, the loss goes down, the dashboards look healthy. A straggler does not announce itself as a failure, it just shows up as a training run that is quietly costing a third more than it should, for weeks at a time.",
+          "The usual way you find out is after the fact, reading timings once the run is already paid for. Detecting it while the job is live is what makes it actionable: you can drain that machine and reschedule mid-run instead of eating the tax to the end.",
         ],
       },
       {
-        heading: "The same shape, on a GPU cluster",
+        heading: "The mixed-vendor problem",
         body: [
-          "Training a large model is data-parallel and synchronous. Every GPU holds a copy of the model, each works through its own slice of the batch, and then all of them stop and exchange gradients before any of them can start the next step. That exchange is a barrier: it does not complete until the last GPU arrives.",
-          "So the line has to wait, exactly like the drill. If one GPU in a thousand is running 30% slow — a bad thermal, a throttled link, a noisy neighbor, a subtly different clock — then every step takes 30% longer and you are paying for 999 idle GPUs while one of them catches up. That machine is the straggler.",
-          "The unhelpful part is that nothing crashes. The job runs, the loss goes down, the dashboards look fine. It is just quietly costing a third more than it should, for weeks.",
+          "These clusters are not uniform. NVIDIA and AMD expose performance counters differently and have different baseline timing behavior, so a naive cross-vendor comparison reads an ordinary hardware difference as a fault and flags healthy machines.",
+          "The signal has to be normalized per vendor before a real straggler is separable from routine variance. Getting that boundary right is most of the work.",
         ],
       },
       {
-        heading: "What I'm building",
+        heading: "Where it comes from",
         body: [
-          "Detection at runtime rather than in a post-mortem: watch per-rank step timings as the job runs and flag the machine that is consistently arriving late at the barrier, early enough to drain it and reschedule instead of eating the cost for the rest of the run.",
-          "The hard part is that the clusters are mixed. NVIDIA and AMD expose performance counters differently and have different baseline timing behavior, so a raw comparison across vendors reads a hardware difference as a fault. The signal has to be normalized per-vendor before a genuine straggler is separable from ordinary variance.",
-          "The approach comes out of multi-vendor GPU performance tracking work at Meta.",
+          "The approach grew out of multi-vendor GPU performance tracking work at Meta, across NVIDIA and AMD hardware.",
         ],
       },
     ],
