@@ -123,6 +123,16 @@ export const education = {
   ],
 };
 
+export type DeepSection = { heading: string; body: string[] };
+
+export type VentureDeep = {
+  tagline: string;
+  sections: DeepSection[];
+  /** Key of an interactive explainer to render inside the detail view. */
+  demo?: "indian-run";
+  stack?: string[];
+};
+
 export type Cargo = {
   id: string;
   tag: string;
@@ -257,3 +267,118 @@ export const navItems = [
   { id: "layover", n: "05", label: "Layover" },
   { id: "arrivals", n: "06", label: "Arrivals" },
 ];
+
+/**
+ * Long-form copy shown when a cargo card is opened. Keyed by Cargo.id so the
+ * card list stays readable.
+ */
+export const ventureDeep: Record<string, VentureDeep> = {
+  straggler: {
+    tagline: "A training cluster only moves as fast as its slowest GPU.",
+    demo: "indian-run",
+    sections: [
+      {
+        heading: "The drill",
+        body: [
+          "There is a conditioning run wrestlers and most team-sport athletes know as the Indian run. The team jogs in a single-file line at an easy pace. The runner at the very back sprints up the outside, passes everyone, and takes over the front, setting the pace for the pack. As soon as they arrive, the new last runner starts their sprint. The drill ends once everyone has rotated to the front some fixed number of times, say three.",
+          "Here is the part that matters: the drill is not over until the slowest person has done all of their sprints. Everyone else can be fast. It changes nothing. Five strong runners and one who is gassed turns a five-minute drill into fifteen, and the other five spend that time jogging, waiting for a turn that cannot start early.",
+        ],
+      },
+      {
+        heading: "The same shape, on a GPU cluster",
+        body: [
+          "Training a large model is data-parallel and synchronous. Every GPU holds a copy of the model, each works through its own slice of the batch, and then all of them stop and exchange gradients before any of them can start the next step. That exchange is a barrier: it does not complete until the last GPU arrives.",
+          "So the line has to wait, exactly like the drill. If one GPU in a thousand is running 30% slow — a bad thermal, a throttled link, a noisy neighbor, a subtly different clock — then every step takes 30% longer and you are paying for 999 idle GPUs while one of them catches up. That machine is the straggler.",
+          "The unhelpful part is that nothing crashes. The job runs, the loss goes down, the dashboards look fine. It is just quietly costing a third more than it should, for weeks.",
+        ],
+      },
+      {
+        heading: "What I'm building",
+        body: [
+          "Detection at runtime rather than in a post-mortem: watch per-rank step timings as the job runs and flag the machine that is consistently arriving late at the barrier, early enough to drain it and reschedule instead of eating the cost for the rest of the run.",
+          "The hard part is that the clusters are mixed. NVIDIA and AMD expose performance counters differently and have different baseline timing behavior, so a raw comparison across vendors reads a hardware difference as a fault. The signal has to be normalized per-vendor before a genuine straggler is separable from ordinary variance.",
+          "The approach comes out of multi-vendor GPU performance tracking work at Meta.",
+        ],
+      },
+    ],
+    stack: ["NVIDIA", "AMD", "Python", "Distributed training"],
+  },
+
+  eternaltap: {
+    tagline: "A transit pass that lives in the phone you already unlock.",
+    sections: [
+      {
+        heading: "The problem",
+        body: [
+          "University transit programs are an eligibility problem wearing a fare problem's clothes. A school negotiates discounted passes for enrolled students, and then somebody has to actually prove who is enrolled, apply the right agency fare rule, issue a physical card, and take it back when the student graduates or drops. Most of that is manual, and the plastic makes it worse.",
+          "There is no consumer-facing site to point you at, because this is sold to universities and transit agencies rather than to riders.",
+        ],
+      },
+      {
+        heading: "How it works",
+        body: [
+          "The platform syncs against the university's roster as the source of truth on who is currently enrolled, prices the ride against MBTA fare rules, and issues a signed Apple Wallet pass straight to the student's phone.",
+          "Because eligibility is derived from the roster rather than from a card somebody is holding, a pass can be revoked the moment enrollment lapses, instead of staying valid until a piece of plastic is physically returned.",
+        ],
+      },
+      {
+        heading: "Where it stands",
+        body: [
+          "Built with a cofounder. It has a conditional contract covering 22,000+ riders and has drawn venture interest.",
+          "Current work is go-to-market: university B2B contracts, and sequencing the MBTA partnership.",
+        ],
+      },
+    ],
+    stack: ["Next.js", "TypeScript", "Postgres", "Apple Wallet"],
+  },
+
+  credimax: {
+    tagline: "You are holding four cards. Only one of them is the right one.",
+    sections: [
+      {
+        heading: "The problem",
+        body: [
+          "Rewards cards are only worth anything if you use the right one at the right merchant, and the rules are deliberately hard to hold in your head: rotating quarterly categories, capped bonus spend, different multipliers per card. Most people default to whichever card is in front and quietly leave rewards on the table at every checkout.",
+        ],
+      },
+      {
+        heading: "How it works",
+        body: [
+          "The app aggregates your cards through Plaid and reads roughly 800+ transactions per rolling three-month window to learn where you actually spend.",
+          "An AI engine prices what you left behind — the gap between the card you tapped and the best card you were carrying — and then surfaces the right card at the point of purchase, before you pay rather than on a statement a month later.",
+        ],
+      },
+      {
+        heading: "Where it stands",
+        body: [
+          "Negotiated seed terms with venture firms and with senior American Express leadership, then walked away from the round.",
+        ],
+      },
+    ],
+    stack: ["iOS", "Plaid", "LLM APIs"],
+  },
+
+  engine: {
+    tagline: "The storefronts and the ads that sell on them, mostly building themselves.",
+    sections: [
+      {
+        heading: "The storefront builder",
+        body: [
+          "Rather than hand-designing a shop per product category, the builder regenerates the whole storefront and then tunes it against live sales, feeding heatmap data and Meta Conversions API results back into its own redesign decisions.",
+        ],
+      },
+      {
+        heading: "The creative pipeline",
+        body: [
+          "Higgsfield MCP plus a Python Pillow compositor takes ad production from days down to about 6 minutes, roughly 40 variants a week. AI UGC video is prompted through Kling 3.0 and Seedance 2.0.",
+          "Underneath it is ordinary Shopify theme work: Liquid, JSON, and JavaScript.",
+        ],
+      },
+      {
+        heading: "Result",
+        body: ["$180K in revenue across the brands it runs."],
+      },
+    ],
+    stack: ["Python", "Pillow", "Shopify", "Liquid", "Meta CAPI"],
+  },
+};
