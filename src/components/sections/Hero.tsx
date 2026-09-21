@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { profile } from "@/data/site";
+import { cargo, profile } from "@/data/site";
 import { useIntro } from "../IntroContext";
 import Plane from "../Plane";
 import SplitFlap from "../SplitFlap";
@@ -98,9 +98,9 @@ export default function Hero() {
         >
           {[
             ["23", "COUNTRIES STAMPED"],
-            ["03", "HOME BASES"],
+            [String(profile.bases.length).padStart(2, "0"), "HOME BASES"],
             ["1ST", "MA STATE CHAMPION, MULTIPLE TITLES"],
-            ["06", "VENTURES IN THE HOLD"],
+            [String(cargo.length).padStart(2, "0"), "VENTURES IN THE HOLD"],
           ].map(([v, k]) => (
             <div key={k}>
               <dt className="order-2 text-[10px] tracking-[0.28em] text-fg-dim">{k}</dt>

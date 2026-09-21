@@ -22,8 +22,13 @@ export default function Arrivals() {
             Now <em className="italic text-gold-2">landing.</em>
           </>
         }
-        blurb="If you are hiring for 2027, building something, or just passing through Boston, Warsaw, or Milan, my inbox is open."
+        blurb="If you are hiring for 2027, building something, or just passing through San Francisco, Boston, or Warsaw, my inbox is open."
       />
+
+      <Reveal className="mb-16 max-w-3xl border-l-2 border-gold/60 pl-6 md:pl-8">
+        <div className="font-mono text-[10px] tracking-[0.3em] text-gold">THE WORK THAT EXCITES ME</div>
+        <p className="mt-4 text-[17px] leading-relaxed text-paper/90 md:text-[19px]">{profile.excites}</p>
+      </Reveal>
 
       <div className="grid gap-12 lg:grid-cols-12">
         <Reveal className="lg:col-span-5">

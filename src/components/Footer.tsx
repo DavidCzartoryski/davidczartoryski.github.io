@@ -10,7 +10,7 @@ export default function Footer() {
         <div>
           <div className="font-display text-2xl tracking-tight">{profile.name}</div>
           <div className="mt-1 font-mono text-[10px] tracking-[0.3em] text-fg-dim">
-            BOS · WAW · MXP · © {YEAR}
+            {profile.bases.map((b) => b.code).join(" · ")} · © {YEAR}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-6 font-mono text-[10px] tracking-[0.25em] text-fg-dim">

@@ -10,9 +10,9 @@ export const profile = {
   degreeNote: "Petition in progress to BSBA Finance with a CS minor",
   graduation: "May 2027",
   bases: [
+    { code: "SFO", city: "San Francisco", note: "Work, the Bay Area, where the next leg lands" },
     { code: "BOS", city: "Boston", note: "School, EternalTap, the MBTA" },
     { code: "WAW", city: "Warsaw", note: "Heritage, Polish Club, real estate" },
-    { code: "MXP", city: "Milan", note: "Friends, modeling, photography" },
   ],
   email: "czartoryski.d@northeastern.edu",
   linkedin: "https://www.linkedin.com/in/davidczartoryski",
@@ -26,6 +26,8 @@ export const profile = {
     "Private equity and venture roles",
     "Front-office, people-facing finance",
   ],
+  excites:
+    "The work that actually pulls me in is making things faster. Load balancing, cutting latency, runtime, and cost: profiling a system until the bottleneck shows itself, then optimizing the code around it. Most of what I have shipped is a version of that same problem — a 5-second poll down to 120 ms, 70% off deployment time, 30% off query latency, and now straggler detection across GPU clusters.",
 };
 
 export const passportFacts = [
@@ -63,18 +65,6 @@ export const flightLog: Leg[] = [
       "Capstone with Prof. Jon Bell. The platform covers submissions, similarity checking, grading workflows, a gradebook with its own query language, a forum, polling, and real-time office hours. Other schools have asked to adopt it.",
     ],
     tech: ["Next.js", "TypeScript", "Supabase", "Postgres", "GitHub Actions"],
-  },
-  {
-    id: "meta",
-    code: "MPK",
-    city: "Menlo Park, CA",
-    company: "Meta",
-    title: "GPU performance tracking",
-    range: "2026",
-    bullets: [
-      "Multi-vendor GPU performance tracking across NVIDIA and AMD hardware.",
-    ],
-    tech: ["NVIDIA", "AMD", "Python"],
   },
   {
     id: "mosaiq",
@@ -146,12 +136,13 @@ export type Cargo = {
 };
 
 export const studio = {
-  name: "Hercules Holdings LLC",
+  name: "Hercules Holdings",
+  short: "HH",
   role: "Founder & CEO",
-  kind: "Venture studio",
+  kind: "Venture studio & holding company",
   range: "2024 – Present",
   blurb:
-    "A studio that builds and runs its own companies: a govtech fare platform, a consumer fintech app, two direct-to-consumer brands, and the AI tooling that keeps them selling. It has had employees and interns.",
+    "Hercules Holdings — HH — is a venture studio and holding company that my ventures operate under. Everything below is built and run inside it: a govtech fare platform, a consumer fintech app, the AI tooling behind the commerce brands, and runtime research for GPU clusters. It has had employees and interns.",
 };
 
 export const cargo: Cargo[] = [
@@ -183,35 +174,11 @@ export const cargo: Cargo[] = [
     tone: "red",
   },
   {
-    id: "argali",
-    tag: "HH-003",
-    name: "Argali",
-    sector: "DTC · supplements & home",
-    blurb: "Shopify storefronts and full advertorial funnels for astaxanthin, aged garlic extract, and a weed puller.",
-    detail: [
-      "Ran the Meta campaigns end to end: Pixel and server-side Conversions API, Meta business verification, and SPF/DKIM/DMARC so the emails land.",
-    ],
-    link: { href: "https://tryargali.com", label: "tryargali.com" },
-    tone: "green",
-  },
-  {
-    id: "veldre",
-    tag: "HH-004",
-    name: "Veldre",
-    sector: "DTC · home & health",
-    blurb: "Launched a waterproof mattress protector with UGC and static creatives.",
-    detail: [
-      "Competitive research in the Meta Ads Library, funnel drop-off diagnosed with Microsoft Clarity, long-form native advertorials written in-house.",
-    ],
-    link: { href: "https://tryveldre.com", label: "tryveldre.com" },
-    tone: "violet",
-  },
-  {
     id: "engine",
-    tag: "HH-005",
+    tag: "HH-003",
     name: "The creative engine",
     sector: "AI tooling · ecommerce",
-    blurb: "The software behind the brands: an autonomous storefront builder and an ad creative pipeline.",
+    blurb: "The software behind the DTC brands: an autonomous storefront builder and an ad creative pipeline.",
     detail: [
       "The storefront builder regenerates a whole shop per product category and tunes it against live sales, feeding heatmap and Meta Conversions API data back into its redesign decisions. $180K in revenue across the brands.",
       "The creative pipeline (Higgsfield MCP plus a Python Pillow compositor) takes ad production from days to 6 minutes, about 40 variants a week, with AI UGC video prompted through Kling 3.0 and Seedance 2.0. Shopify theme work in Liquid, JSON, and JS.",
@@ -220,24 +187,17 @@ export const cargo: Cargo[] = [
     tone: "red",
   },
   {
-    id: "supply",
-    tag: "HH-006",
-    name: "Supply operation",
-    sector: "Distribution · US, EU, Asia",
-    blurb: "A global supply distribution operation feeding the two brands across three continents.",
-    detail: ["Sourcing and logistics spanning the United States, the European Union, and Asia."],
-    tone: "blue",
-  },
-];
-
-export const flightPlan = [
-  {
+    id: "straggler",
+    tag: "HH-004",
     name: "Runtime straggler detection",
-    blurb: "Catching slow workers during distributed GPU training across mixed NVIDIA and AMD clusters, based on the Meta work.",
-  },
-  {
-    name: "AI BDC for independent dealerships",
-    blurb: "Lead interception, inventory matching, and appointment booking for small car dealers that can't staff a business development center.",
+    sector: "AI infrastructure · GPU clusters",
+    blurb:
+      "Catching slow workers during distributed GPU training across mixed NVIDIA and AMD clusters, based on the Meta work.",
+    detail: [
+      "A synchronous training step only finishes when its slowest rank does, so one degraded worker sets the pace for the entire cluster. This finds it at runtime instead of in a post-mortem.",
+      "Mixed fleets are the hard part: NVIDIA and AMD expose performance differently, so the signal has to be normalized across both vendors before a straggler is separable from ordinary variance.",
+    ],
+    tone: "violet",
   },
 ];
 
