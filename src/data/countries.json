@@ -1,0 +1,219 @@
+[
+  {
+    "slug": "united-states",
+    "name": "United States",
+    "iso": "USA",
+    "flag": "🇺🇸",
+    "numeric": 840,
+    "anchor": [
+      -98.5,
+      39.8
+    ],
+    "clip": [
+      -125,
+      24,
+      -66,
+      50
+    ],
+    "region": "North America",
+    "res": "110m"
+  },
+  {
+    "slug": "canada",
+    "name": "Canada",
+    "iso": "CAN",
+    "flag": "🇨🇦",
+    "numeric": 124,
+    "anchor": [
+      -96,
+      56
+    ],
+    "region": "North America",
+    "res": "110m"
+  },
+  {
+    "slug": "mexico",
+    "name": "Mexico",
+    "iso": "MEX",
+    "flag": "🇲🇽",
+    "numeric": 484,
+    "region": "North America"
+  },
+  {
+    "slug": "jamaica",
+    "name": "Jamaica",
+    "iso": "JAM",
+    "flag": "🇯🇲",
+    "numeric": 388,
+    "region": "Caribbean"
+  },
+  {
+    "slug": "dominican-republic",
+    "name": "Dominican Republic",
+    "iso": "DOM",
+    "flag": "🇩🇴",
+    "numeric": 214,
+    "region": "Caribbean"
+  },
+  {
+    "slug": "poland",
+    "name": "Poland",
+    "iso": "POL",
+    "flag": "🇵🇱",
+    "numeric": 616,
+    "region": "Europe",
+    "home": true
+  },
+  {
+    "slug": "germany",
+    "name": "Germany",
+    "iso": "DEU",
+    "flag": "🇩🇪",
+    "numeric": 276,
+    "region": "Europe"
+  },
+  {
+    "slug": "lithuania",
+    "name": "Lithuania",
+    "iso": "LTU",
+    "flag": "🇱🇹",
+    "numeric": 440,
+    "region": "Europe"
+  },
+  {
+    "slug": "turkey",
+    "name": "Turkey",
+    "iso": "TUR",
+    "flag": "🇹🇷",
+    "numeric": 792,
+    "region": "Europe / Asia"
+  },
+  {
+    "slug": "netherlands",
+    "name": "Netherlands",
+    "iso": "NLD",
+    "flag": "🇳🇱",
+    "numeric": 528,
+    "clip": [
+      3,
+      50,
+      8,
+      54
+    ],
+    "region": "Europe"
+  },
+  {
+    "slug": "bulgaria",
+    "name": "Bulgaria",
+    "iso": "BGR",
+    "flag": "🇧🇬",
+    "numeric": 100,
+    "region": "Europe"
+  },
+  {
+    "slug": "france",
+    "name": "France",
+    "iso": "FRA",
+    "flag": "🇫🇷",
+    "numeric": 250,
+    "anchor": [
+      2.5,
+      46.5
+    ],
+    "clip": [
+      -5.5,
+      41,
+      10,
+      51.5
+    ],
+    "region": "Europe"
+  },
+  {
+    "slug": "hungary",
+    "name": "Hungary",
+    "iso": "HUN",
+    "flag": "🇭🇺",
+    "numeric": 348,
+    "region": "Europe"
+  },
+  {
+    "slug": "austria",
+    "name": "Austria",
+    "iso": "AUT",
+    "flag": "🇦🇹",
+    "numeric": 40,
+    "region": "Europe"
+  },
+  {
+    "slug": "slovakia",
+    "name": "Slovakia",
+    "iso": "SVK",
+    "flag": "🇸🇰",
+    "numeric": 703,
+    "region": "Europe"
+  },
+  {
+    "slug": "czechia",
+    "name": "Czechia",
+    "iso": "CZE",
+    "flag": "🇨🇿",
+    "numeric": 203,
+    "region": "Europe"
+  },
+  {
+    "slug": "united-arab-emirates",
+    "name": "United Arab Emirates",
+    "iso": "ARE",
+    "flag": "🇦🇪",
+    "numeric": 784,
+    "region": "Middle East"
+  },
+  {
+    "slug": "italy",
+    "name": "Italy",
+    "iso": "ITA",
+    "flag": "🇮🇹",
+    "numeric": 380,
+    "region": "Europe"
+  },
+  {
+    "slug": "vatican",
+    "name": "Vatican City",
+    "iso": "VAT",
+    "flag": "🇻🇦",
+    "numeric": 336,
+    "region": "Europe"
+  },
+  {
+    "slug": "bosnia",
+    "name": "Bosnia & Herzegovina",
+    "iso": "BIH",
+    "flag": "🇧🇦",
+    "numeric": 70,
+    "region": "Europe"
+  },
+  {
+    "slug": "georgia",
+    "name": "Georgia",
+    "iso": "GEO",
+    "flag": "🇬🇪",
+    "numeric": 268,
+    "region": "Caucasus"
+  },
+  {
+    "slug": "greece",
+    "name": "Greece",
+    "iso": "GRC",
+    "flag": "🇬🇷",
+    "numeric": 300,
+    "region": "Europe"
+  },
+  {
+    "slug": "albania",
+    "name": "Albania",
+    "iso": "ALB",
+    "flag": "🇦🇱",
+    "numeric": 8,
+    "region": "Europe"
+  }
+]

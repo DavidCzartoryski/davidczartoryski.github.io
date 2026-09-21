@@ -1,0 +1,210 @@
+{
+ "albania": [
+  {
+   "src": "/photos/albania/theth-albanian-alps-01.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-01-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_4944"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-02.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-02-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_4945"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-03.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-03-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_4946"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-04.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-04-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_4947"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-05.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-05-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_4959"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-06.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-06-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_4963"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-07.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-07-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_5033"
+  },
+  {
+   "src": "/photos/albania/theth-albanian-alps-08.webp",
+   "thumb": "/photos/albania/theth-albanian-alps-08-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Theth, Albanian Alps",
+   "file": "IMG_5090"
+  }
+ ],
+ "italy": [
+  {
+   "src": "/photos/italy/lake-como-01.webp",
+   "thumb": "/photos/italy/lake-como-01-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Lake Como",
+   "file": "IMG_4482"
+  },
+  {
+   "src": "/photos/italy/lake-como-02.webp",
+   "thumb": "/photos/italy/lake-como-02-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Lake Como",
+   "file": "IMG_4487"
+  },
+  {
+   "src": "/photos/italy/lake-como-03.webp",
+   "thumb": "/photos/italy/lake-como-03-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Lake Como",
+   "file": "IMG_4514"
+  },
+  {
+   "src": "/photos/italy/lake-como-04.webp",
+   "thumb": "/photos/italy/lake-como-04-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Lake Como",
+   "file": "LakeComo_italy"
+  },
+  {
+   "src": "/photos/italy/milan-05.webp",
+   "thumb": "/photos/italy/milan-05-thumb.webp",
+   "w": 1800,
+   "h": 2400,
+   "place": "Milan",
+   "file": "IMG_4570"
+  },
+  {
+   "src": "/photos/italy/milan-06.webp",
+   "thumb": "/photos/italy/milan-06-thumb.webp",
+   "w": 1800,
+   "h": 2400,
+   "place": "Milan",
+   "file": "IMG_4572"
+  },
+  {
+   "src": "/photos/italy/milan-07.webp",
+   "thumb": "/photos/italy/milan-07-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Milan",
+   "file": "Milan"
+  }
+ ],
+ "poland": [
+  {
+   "src": "/photos/poland/tatra-mountains-01.webp",
+   "thumb": "/photos/poland/tatra-mountains-01-thumb.webp",
+   "w": 1016,
+   "h": 1800,
+   "place": "Tatra Mountains",
+   "file": "Poland_tatar_mountainrange_border_of_czach_republic"
+  },
+  {
+   "src": "/photos/poland/warsaw-02.webp",
+   "thumb": "/photos/poland/warsaw-02-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Warsaw",
+   "file": "IMG_3855"
+  },
+  {
+   "src": "/photos/poland/warsaw-03.webp",
+   "thumb": "/photos/poland/warsaw-03-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Warsaw",
+   "file": "IMG_3865"
+  },
+  {
+   "src": "/photos/poland/warsaw-04.webp",
+   "thumb": "/photos/poland/warsaw-04-thumb.webp",
+   "w": 1800,
+   "h": 2400,
+   "place": "Warsaw",
+   "file": "IMG_3991"
+  },
+  {
+   "src": "/photos/poland/warsaw-05.webp",
+   "thumb": "/photos/poland/warsaw-05-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Warsaw",
+   "file": "IMG_3993"
+  },
+  {
+   "src": "/photos/poland/warsaw-06.webp",
+   "thumb": "/photos/poland/warsaw-06-thumb.webp",
+   "w": 1013,
+   "h": 1800,
+   "place": "Warsaw",
+   "file": "Warsaw"
+  }
+ ],
+ "turkey": [
+  {
+   "src": "/photos/turkey/istanbul-01.webp",
+   "thumb": "/photos/turkey/istanbul-01-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Istanbul",
+   "file": "IMG_4814"
+  },
+  {
+   "src": "/photos/turkey/istanbul-02.webp",
+   "thumb": "/photos/turkey/istanbul-02-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Istanbul",
+   "file": "IMG_4816"
+  },
+  {
+   "src": "/photos/turkey/istanbul-03.webp",
+   "thumb": "/photos/turkey/istanbul-03-thumb.webp",
+   "w": 1350,
+   "h": 1800,
+   "place": "Istanbul",
+   "file": "IMG_4864"
+  },
+  {
+   "src": "/photos/turkey/istanbul-04.webp",
+   "thumb": "/photos/turkey/istanbul-04-thumb.webp",
+   "w": 1800,
+   "h": 2400,
+   "place": "Istanbul",
+   "file": "Istanbul"
+  }
+ ]
+}

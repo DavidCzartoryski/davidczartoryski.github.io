@@ -1,0 +1,38 @@
+{
+  "name": "david-czartoryski-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "geo": "node scripts/build-geo.mjs",
+    "photos": "node scripts/build-photos.mjs",
+    "og": "node scripts/build-og.mjs",
+    "assets": "npm run geo && npm run photos && npm run og"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "motion": "^13.3.0",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/d3-geo": "^3.1.1",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/topojson-client": "^3.1.5",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "sharp": "^0.35.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

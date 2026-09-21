@@ -1,0 +1,9 @@
+{
+  "_comment": "Maps a folder (or file) under _raw/countries to a country slug from src/data/countries.json and a place label. Folders not listed here fall back to matching the folder name against country names.",
+  "Albania": { "country": "albania", "place": "Theth, Albanian Alps" },
+  "LakeComo": { "country": "italy", "place": "Lake Como" },
+  "Milan": { "country": "italy", "place": "Milan" },
+  "Turkey": { "country": "turkey", "place": "Istanbul" },
+  "Warsaw": { "country": "poland", "place": "Warsaw" },
+  "Poland_tatar_mountainrange_border_of_czach_republic.png": { "country": "poland", "place": "Tatra Mountains" }
+}

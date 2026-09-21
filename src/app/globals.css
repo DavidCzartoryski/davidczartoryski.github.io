@@ -1,0 +1,254 @@
+@import "tailwindcss";
+
+/* ──────────────────────────────────────────────────────────────
+   Passport, not dashboard. Ink-navy night sky, cream passport
+   paper, stamp inks, and one gold foil accent. Editorial serif for
+   headings (fashion-magazine register), a humanist sans for body,
+   and a mono for anything that would be printed on a ticket.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --ink: #0b1020;
+  --ink-2: #111a33;
+  --ink-3: #182347;
+  --paper: #f3ead8;
+  --paper-2: #e6dcc4;
+  --paper-3: #d6c8a8;
+  --gold: #d4a853;
+  --gold-2: #f0cf85;
+  --ember: #c8502c;
+  --stamp-red: #d63a2f;
+  --stamp-blue: #3b5bb5;
+  --stamp-green: #2f7a4f;
+  --stamp-violet: #6b4fb0;
+
+  --fg: var(--paper);
+  --fg-muted: rgba(243, 234, 216, 0.66);
+  --fg-dim: rgba(243, 234, 216, 0.48);
+  --fg-faint: rgba(243, 234, 216, 0.3);
+  --line: rgba(243, 234, 216, 0.1);
+  --line-2: rgba(243, 234, 216, 0.18);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-gold: var(--gold);
+  --color-gold-2: var(--gold-2);
+  --color-ember: var(--ember);
+  --color-stamp-red: var(--stamp-red);
+  --color-stamp-blue: var(--stamp-blue);
+  --color-stamp-green: var(--stamp-green);
+  --color-stamp-violet: var(--stamp-violet);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-dim: var(--fg-dim);
+  --color-fg-faint: var(--fg-faint);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+
+  --font-display: var(--font-bodoni), "Didot", "Bodoni MT", Georgia, serif;
+  --font-sans: var(--font-instrument), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), "SF Mono", Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--ink);
+}
+
+body {
+  background: var(--ink);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* Fluid type steps */
+:root {
+  --step-display: clamp(3rem, 9.5vw, 8.5rem);
+  --step-h2: clamp(2.2rem, 5vw, 4.25rem);
+  --step-h3: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+/* Film grain over everything, very low opacity. */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: grain 1.4s steps(4) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -3%); }
+  75% { transform: translate(-1%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grain::after { animation: none; }
+}
+
+/* Passport paper surface */
+.paper {
+  background-color: var(--paper);
+  background-image: url("/art/paper.webp");
+  background-size: 520px 520px;
+  color: var(--ink);
+}
+
+/* Perforated tear line for boarding-pass stubs */
+.perf-v {
+  position: relative;
+}
+.perf-v::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -1px;
+  border-left: 2px dashed rgba(11, 16, 32, 0.35);
+}
+.perf-v::after,
+.perf-v > .notch {
+  content: "";
+  position: absolute;
+  left: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.perf-v::after { top: -12px; }
+.perf-v > .notch { bottom: -12px; }
+
+/* Barcode made of stripes */
+.barcode {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 2px,
+    transparent 2px 4px,
+    var(--ink) 4px 5px,
+    transparent 5px 9px,
+    var(--ink) 9px 12px,
+    transparent 12px 14px,
+    var(--ink) 14px 15px,
+    transparent 15px 19px
+  );
+}
+
+/* Dashed route line */
+.route-dash {
+  stroke-dasharray: 6 8;
+  animation: route 1.6s linear infinite;
+}
+@keyframes route {
+  to { stroke-dashoffset: -28; }
+}
+
+/* Radar-style ping for map markers */
+@keyframes ping-soft {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.ping-soft {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: ping-soft 2.4s var(--ease-out) infinite;
+}
+
+/* Alarm clock ring (used by the intro) */
+@keyframes bell-rock {
+  0% { transform: rotate(-14deg); }
+  100% { transform: rotate(14deg); }
+}
+@keyframes hammer {
+  0% { transform: translateX(-9px); }
+  100% { transform: translateX(9px); }
+}
+@keyframes shake {
+  0% { transform: translate(0, 0) rotate(0); }
+  20% { transform: translate(-6px, 3px) rotate(-1.5deg); }
+  40% { transform: translate(5px, -4px) rotate(1.2deg); }
+  60% { transform: translate(-4px, -2px) rotate(-1deg); }
+  80% { transform: translate(6px, 3px) rotate(1.4deg); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+.ringing .bell-l { animation: bell-rock 90ms linear infinite alternate; transform-origin: 118px 96px; }
+.ringing .bell-r { animation: bell-rock 90ms linear infinite alternate-reverse; transform-origin: 282px 96px; }
+.ringing .hammer { animation: hammer 90ms linear infinite alternate; }
+.ringing .clock-body { animation: shake 160ms linear infinite; }
+@keyframes ring-out {
+  0% { transform: scale(0.7); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.ring-out {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: ring-out 700ms var(--ease-out) infinite;
+}
+
+/* Audio button VU bars and the intro's airport-code strip */
+@keyframes vu {
+  from { height: 25%; }
+  to { height: 100%; }
+}
+@keyframes strip {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Hairline, offset dividers */
+.hairline {
+  border-color: var(--line);
+}
+
+/* Focus rings that respect the palette */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* Hide scrollbars on horizontal strips */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Split-flap character cell */
+.flap {
+  position: relative;
+  display: inline-block;
+  min-width: 0.72em;
+  padding: 0.08em 0.06em;
+  border-radius: 0.14em;
+  background: linear-gradient(#1b2547, #0e1631);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 0 rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.flap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.55);
+}
