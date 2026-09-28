@@ -8,7 +8,7 @@ export const profile = {
   school: "Northeastern University",
   degree: "B.S. Computer Science & Business Administration",
   degreeNote: "Petition in progress to BSBA Finance with a CS minor",
-  graduation: "May 2027",
+  graduation: "Dec 2027",
   bases: [
     { code: "SFO", city: "San Francisco" },
     { code: "BOS", city: "Boston" },
@@ -22,7 +22,7 @@ export const profile = {
   handle: "@dczar.ski",
   resume: "/resume/DavidCzartoryski_Resume.pdf",
   openTo: [
-    "New-grad software engineering, starting after May 2027",
+    "New-grad software engineering, starting after December 2027",
     "Private equity and venture roles",
     "Front-office, people-facing finance",
   ],
@@ -61,10 +61,10 @@ export const flightLog: Leg[] = [
     range: "Sep 2026 – Present",
     bullets: [
       "Operate a production coding and grading platform serving 5,000+ weekly active users across ten Northeastern CS courses, as one of 15 engineers shipping through daily standups and peer code review on a subteam of four that owns one service end to end.",
-      "Work in the autograding path (Next.js and TypeScript on Supabase Postgres): every submission runs through GitHub Actions and returns compile errors, similarity scores, and AI-usage signals before a human grader sees it.",
+      "Set up telemetry for the Next.js and Supabase platform with the OpenTelemetry library, exporting metrics to Prometheus and visualizing them in Grafana dashboards.",
       "Capstone with Prof. Jon Bell. The platform covers submissions, similarity checking, grading workflows, a gradebook with its own query language, a forum, polling, and real-time office hours. Other schools have asked to adopt it.",
     ],
-    tech: ["Next.js", "TypeScript", "Supabase", "Postgres", "GitHub Actions"],
+    tech: ["Next.js", "TypeScript", "Supabase", "OpenTelemetry", "Prometheus", "Grafana"],
   },
   {
     id: "mosaiq",
@@ -115,8 +115,9 @@ export const education = {
   school: "Northeastern University",
   city: "Boston, MA",
   degree: "B.S. Computer Science & Business Administration",
-  range: "Expected May 2027",
+  range: "Expected Dec 2027",
   bullets: [
+    "Won 1st place among 250+ participants at the 2026 Microsoft x Northeastern AI Hackathon.",
     "Combined CS and business program, with an active petition to transfer into BSBA Finance with a CS minor.",
     "President of the Polish Club (previously VP of the Polish Students Association). The club attended an international youth conference in Warsaw in summer 2026 on the future of Poland.",
     "CookYourBooks: a Java OOP group project.",

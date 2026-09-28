@@ -22,7 +22,7 @@ export default function Arrivals() {
             Now <em className="italic text-gold-2">landing.</em>
           </>
         }
-        blurb="If you are hiring for 2027, building something, or just passing through San Francisco, Boston, or Warsaw, my inbox is open."
+        blurb="If you are hiring new grads, building something, or just passing through San Francisco, Boston, or Warsaw, my inbox is open."
       />
 
       <Reveal className="mb-16 max-w-3xl border-l-2 border-gold/60 pl-6 md:pl-8">
