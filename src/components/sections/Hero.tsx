@@ -66,7 +66,7 @@ export default function Hero() {
           <motion.p variants={child} className="mt-8 max-w-xl text-[17px] leading-relaxed text-fg-muted md:text-[19px]">
             Software engineer and founder out of Northeastern. Wrestler by trade, Polish at home,
             Bostonian by zip code. Twenty-three countries stamped, and the next flight is a new-grad
-            engineering role in May 2027.
+            engineering role after I graduate in December 2027.
           </motion.p>
 
           <motion.div variants={child} className="mt-10 flex flex-wrap items-center gap-4">
@@ -156,7 +156,7 @@ function BoardingPass() {
             ["GATE", "23"],
             ["SEAT", "1A"],
             ["CLASS", "FOUNDER"],
-            ["DEPARTS", "MAY 2027"],
+            ["DEPARTS", "DEC 2027"],
           ].map(([k, v]) => (
             <div key={k}>
               <dt className="text-[9px] tracking-[0.25em] text-ink/55">{k}</dt>
