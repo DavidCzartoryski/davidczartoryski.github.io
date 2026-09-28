@@ -35,6 +35,7 @@ export default function Hero() {
         <img
           src="/art/night-flight.webp"
           alt=""
+          data-nf="hero-art"
           className="h-full w-full object-cover object-[70%_60%]"
           fetchPriority="high"
         />

@@ -6,6 +6,7 @@ import { AudioProvider } from "@/components/AudioProvider";
 import { IntroProvider } from "@/components/IntroContext";
 import IntroGate from "@/components/IntroGate";
 import Nav from "@/components/Nav";
+import NightFlight from "@/components/three/NightFlight";
 
 const bodoni = Bodoni_Moda({
   subsets: ["latin"],
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AudioProvider>
           <IntroProvider>
             <IntroGate />
+            <NightFlight />
             <Nav />
             {children}
           </IntroProvider>

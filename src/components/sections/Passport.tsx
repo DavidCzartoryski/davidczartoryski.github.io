@@ -88,6 +88,7 @@ export default function Passport() {
               >
                 <button
                   type="button"
+                  data-stamp={c.slug}
                   disabled={!clickable}
                   onClick={() => open(c.slug)}
                   onMouseEnter={() => setHighlight(c.slug)}
