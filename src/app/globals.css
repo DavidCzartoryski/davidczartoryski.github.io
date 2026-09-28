@@ -252,3 +252,41 @@ body {
   height: 1px;
   background: rgba(0, 0, 0, 0.55);
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Night flight: the WebGL layer (src/components/three). None of
+   this applies unless the canvas is up and has added .nf-on, so
+   without WebGL the page is exactly as designed.
+   ────────────────────────────────────────────────────────────── */
+/* The hero photo keeps its horizon and wing; its dark sky gives way to the live one. */
+[data-nf="hero-art"] {
+  transition: opacity 1.6s var(--ease-out);
+}
+html.nf-on [data-nf="hero-art"] {
+  opacity: 0.62;
+  mix-blend-mode: screen;
+}
+/* Horizontal drags on the passport spin the globe; vertical ones still scroll. */
+html.nf-on #passport {
+  touch-action: pan-y pinch-zoom;
+}
+html.nf-holding,
+html.nf-holding * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html.nf-dragging,
+html.nf-dragging * {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grabbing;
+}
+/* A soft ink halo behind text wherever the scene can show through. */
+html.nf-on :is(#passport, #flight-log, #cargo, #the-mat, #layover, #arrivals) :is(p, h2, h3, li, dd, dt, figcaption) {
+  text-shadow: 0 0 18px rgba(11, 16, 32, 0.9), 0 0 4px rgba(11, 16, 32, 0.75);
+}
+/* The venture cards let the cargo hold glow through, just barely. */
+html.nf-on [data-venture] {
+  background-color: rgb(11 16 32 / 0.8);
+}

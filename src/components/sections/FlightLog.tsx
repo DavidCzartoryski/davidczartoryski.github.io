@@ -23,7 +23,7 @@ export default function FlightLog() {
 
         {flightLog.map((leg, i) => (
           <Reveal key={leg.id} delay={0.05}>
-            <li className="relative grid gap-6 border-t border-line py-12 md:grid-cols-12 md:gap-10">
+            <li data-leg={i} className="relative grid gap-6 border-t border-line py-12 md:grid-cols-12 md:gap-10">
               <span aria-hidden className="absolute -left-[3px] top-14 hidden h-[15px] w-[15px] items-center justify-center rounded-full border border-gold/60 bg-ink md:flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-gold" />
               </span>
@@ -64,7 +64,7 @@ export default function FlightLog() {
 
         {/* origin: school */}
         <Reveal>
-          <li className="relative grid gap-6 border-y border-line py-12 md:grid-cols-12 md:gap-10">
+          <li data-leg={flightLog.length} className="relative grid gap-6 border-y border-line py-12 md:grid-cols-12 md:gap-10">
             <span aria-hidden className="absolute -left-[5px] top-14 hidden h-5 w-5 items-center justify-center rounded-full bg-gold text-ink md:flex">
               <Plane size={11} />
             </span>

@@ -26,7 +26,7 @@ export default function VentureCards() {
           const d = ventureDeep[c.id];
           return (
             <Reveal key={c.id} delay={(i % 2) * 0.08}>
-              <li className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-ink transition-colors hover:border-gold/40">
+              <li data-venture={c.id} className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-ink transition-colors hover:border-gold/40">
                 {/* strap */}
                 <div className={`h-2 ${TONE[c.tone]}`} />
 

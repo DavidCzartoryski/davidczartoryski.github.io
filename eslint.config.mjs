@@ -11,6 +11,14 @@ const eslintConfig = defineConfig([
       "@next/next/no-img-element": "off",
     },
   },
+  {
+    // The WebGL layer mutates three.js objects (positions, uniforms, geometry
+    // ranges) inside useFrame by design: that is how React Three Fiber avoids a
+    // React render per frame. The compiler's immutability rule reads those as
+    // mutations of hook values, so it is off for this directory only.
+    files: ["src/components/three/**"],
+    rules: { "react-hooks/immutability": "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

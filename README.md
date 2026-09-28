@@ -26,8 +26,10 @@ src/components/
   AudioProvider.tsx      the one <audio> element, shared by the intro and the nav button
   WorldMap.tsx, Stamp.tsx  outlines rendered from the generated geo data
   sections/              Hero, Passport, FlightLog, Cargo, Mat, Layover, Arrivals
+  three/                 "Night flight", the optional WebGL layer (see below)
 scripts/
   build-geo.mjs          world map + per-country stamp outlines from world-atlas
+  build-globe.mjs        public/three/globe.json: land dots and visited outlines for the 3D globe
   build-photos.mjs       raw photos -> public/photos/*.webp + manifest
   build-og.mjs           social share card from art-src/og-bg.png
 ```
@@ -42,6 +44,33 @@ All four numbers live in `src/lib/audio-cues.ts`. The animation reads
 
 The intro runs once per browser tab (sessionStorage). `?intro=off` on the URL
 skips it, and the footer's "Replay boarding" runs it again.
+
+### Night flight (the 3D layer)
+
+One fixed canvas behind the page, built with React Three Fiber. The camera
+flies a single route as you scroll; each section is a stop: the sky with
+hold-to-board, the dotted globe, the flight path, the cargo hold, the mat,
+the floating prints, and the runway.
+
+- **Loading.** `three/NightFlight.tsx` is the only piece in the main bundle.
+  After the intro clears and the browser is idle, and only if WebGL works (and
+  data saver is off), it pulls in `three/Scene.tsx` through `next/dynamic`
+  with `ssr: false`. Without WebGL nothing loads and the page is untouched.
+- **No per-frame React.** Motion's `useScroll`, pointer, hover and
+  in-view signals write into `three/store.ts`; scenes read it in `useFrame`.
+  The DOM hooks are data attributes: `data-stamp`, `data-leg`, `data-venture`
+  and `data-nf="hero-art"`. CSS that applies only while the layer runs is
+  scoped to `html.nf-on` in `globals.css`.
+- **Size.** `Scene.tsx` uses `createRoot` with a short `extend()` list instead
+  of `<Canvas>`, which would register all of three and stop tree-shaking.
+  Everything is procedural; the only fetched data is `globe.json` and, near
+  the Layover stop, eight existing thumbnails.
+- **Motion and devices.** `prefers-reduced-motion` gets static scenes with no
+  camera travel and no hold. DPR is capped at 1.5 (1 on touch screens), the
+  loop stops while the tab is hidden or the intro covers the page, and
+  `PerformanceMonitor` trims particle counts when frames drop.
+- **Globe data.** `npm run globe` rebuilds `public/three/globe.json` from the
+  same `world-atlas` and `countries.json`; run it after adding a country.
 
 ### Adding photos
 
@@ -59,7 +88,8 @@ ships.
 ### Adding a country
 
 Add a row to `src/data/countries.json` (the `numeric` field is the ISO 3166-1
-numeric code, which is how world-atlas keys countries), then `npm run geo`.
+numeric code, which is how world-atlas keys countries), then `npm run geo`
+and `npm run globe`.
 
 ### Editing copy
 
