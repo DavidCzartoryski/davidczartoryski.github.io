@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { cargo, profile } from "@/data/site";
 import { useIntro } from "../IntroContext";
@@ -86,6 +87,12 @@ export default function Hero() {
             >
               RÉSUMÉ (PDF)
             </a>
+            <Link
+              href="/recruiter/"
+              className="px-2 font-mono text-[12px] tracking-[0.25em] text-fg-dim underline-offset-4 transition-colors hover:text-paper hover:underline"
+            >
+              RECRUITER VIEW →
+            </Link>
           </motion.div>
         </div>
 
