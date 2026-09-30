@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { profile } from "@/data/site";
 import ReplayIntro from "./ReplayIntro";
 
@@ -15,6 +16,9 @@ export default function Footer() {
         </div>
         <div className="flex flex-wrap items-center gap-6 font-mono text-[10px] tracking-[0.25em] text-fg-dim">
           <span>BUILT WITH NEXT.JS AND MOTION</span>
+          <Link href="/recruiter/" className="text-paper underline-offset-4 hover:underline">
+            RECRUITER VIEW →
+          </Link>
           <ReplayIntro />
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import AlarmClock from "./AlarmClock";
 import Plane from "./Plane";
@@ -150,7 +151,7 @@ function Gate({ onDone }: { onDone: () => void }) {
           />
           <Stars />
 
-          {phase === "gate" && <BoardingGate onBoard={board} onSkip={finish} />}
+          {phase === "gate" && <BoardingGate onBoard={board} />}
 
           {phase !== "gate" && (
             <div className="relative flex h-full flex-col items-center justify-center">
@@ -271,88 +272,108 @@ function Gate({ onDone }: { onDone: () => void }) {
   );
 }
 
-function BoardingGate({ onBoard, onSkip }: { onBoard: () => void; onSkip: () => void }) {
+/** The first screen: the boarding pass, and a choice of how to see the site. */
+function BoardingGate({ onBoard }: { onBoard: () => void }) {
   return (
-    <motion.div
-      className="relative flex h-full flex-col items-center justify-center px-6"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="mb-8 font-mono text-[11px] tracking-[0.32em] text-fg-dim">
-        HERCULES AIR · FLIGHT HH 2027 · GATE 23
-      </div>
-
-      {/* boarding pass */}
-      <div className="paper relative w-full max-w-[680px] overflow-hidden rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]">
-        <div className="flex items-center justify-between border-b border-ink/15 px-6 py-3 font-mono text-[11px] tracking-[0.3em] text-ink/70">
-          <span>BOARDING PASS</span>
-          <span className="flex items-center gap-2">
-            <Plane size={14} /> HERCULES AIR
-          </span>
+    // Scrolls on its own so short phones can still reach both choices; the sky stays put.
+    <div className="absolute inset-0 overflow-y-auto">
+      <motion.div
+        className="relative flex min-h-full flex-col items-center justify-center px-6 py-8 sm:py-14"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="mb-5 font-mono text-[10px] tracking-[0.2em] text-fg-dim sm:mb-8 sm:text-[11px] sm:tracking-[0.32em]">
+          HERCULES AIR · FLIGHT HH 2027 · GATE 23
         </div>
-        <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_180px]">
-          <div className="px-6 py-6 md:px-8">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <div className="font-mono text-[10px] tracking-[0.25em] text-ink/55">FROM</div>
-                <div className="font-display text-[clamp(2.6rem,7vw,4.6rem)] leading-none tracking-tight text-ink">BOS</div>
-                <div className="font-mono text-[11px] tracking-[0.15em] text-ink/60">BOSTON</div>
+        {/* boarding pass */}
+        <div className="paper relative w-full max-w-[680px] overflow-hidden rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]">
+          <div className="flex items-center justify-between border-b border-ink/15 px-6 py-3 font-mono text-[11px] tracking-[0.3em] text-ink/70">
+            <span>BOARDING PASS</span>
+            <span className="flex items-center gap-2">
+              <Plane size={14} /> HERCULES AIR
+            </span>
+          </div>
+          <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_180px]">
+            <div className="px-6 py-6 md:px-8">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="font-mono text-[10px] tracking-[0.25em] text-ink/55">FROM</div>
+                  <div className="font-display text-[clamp(2.6rem,7vw,4.6rem)] leading-none tracking-tight text-ink">BOS</div>
+                  <div className="font-mono text-[11px] tracking-[0.15em] text-ink/60">BOSTON</div>
+                </div>
+                <div className="mb-5 flex flex-1 items-center gap-2 px-2 text-ink/50">
+                  <span className="h-px flex-1 border-t border-dashed border-ink/40" />
+                  <Plane size={18} />
+                  <span className="h-px flex-1 border-t border-dashed border-ink/40" />
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-[10px] tracking-[0.25em] text-ink/55">TO</div>
+                  <div className="font-display text-[clamp(2.6rem,7vw,4.6rem)] leading-none tracking-tight text-ink">WLD</div>
+                  <div className="font-mono text-[11px] tracking-[0.15em] text-ink/60">THE WORLD</div>
+                </div>
               </div>
-              <div className="mb-5 flex flex-1 items-center gap-2 px-2 text-ink/50">
-                <span className="h-px flex-1 border-t border-dashed border-ink/40" />
-                <Plane size={18} />
-                <span className="h-px flex-1 border-t border-dashed border-ink/40" />
-              </div>
-              <div className="text-right">
-                <div className="font-mono text-[10px] tracking-[0.25em] text-ink/55">TO</div>
-                <div className="font-display text-[clamp(2.6rem,7vw,4.6rem)] leading-none tracking-tight text-ink">WLD</div>
-                <div className="font-mono text-[11px] tracking-[0.15em] text-ink/60">THE WORLD</div>
-              </div>
+              <dl className="mt-6 grid grid-cols-3 gap-x-4 gap-y-4 font-mono text-ink md:grid-cols-4">
+                <Field k="PASSENGER" v="CZARTORYSKI / D" wide />
+                <Field k="FLIGHT" v="HH 2027" />
+                <Field k="SEAT" v="1A" />
+                <Field k="DEPARTS" v="06:00" />
+                <Field k="COUNTRIES" v="23" />
+                <Field k="CLASS" v="FOUNDER" className="hidden sm:block" />
+              </dl>
             </div>
-            <dl className="mt-6 grid grid-cols-3 gap-x-4 gap-y-4 font-mono text-ink md:grid-cols-4">
-              <Field k="PASSENGER" v="CZARTORYSKI / D" wide />
-              <Field k="FLIGHT" v="HH 2027" />
-              <Field k="SEAT" v="1A" />
-              <Field k="DEPARTS" v="06:00" />
-              <Field k="COUNTRIES" v="23" />
-              <Field k="CLASS" v="FOUNDER" />
-            </dl>
-          </div>
-          <div className="perf-v hidden flex-col items-center justify-between px-5 py-6 md:flex">
-            <span className="notch" />
-            <div className="font-mono text-[10px] tracking-[0.3em] text-ink/55 [writing-mode:vertical-rl]">BOARDING PASS · 1A</div>
-            <div className="barcode h-16 w-full opacity-80" />
+            <div className="perf-v hidden flex-col items-center justify-between px-5 py-6 md:flex">
+              <span className="notch" />
+              <div className="font-mono text-[10px] tracking-[0.3em] text-ink/55 [writing-mode:vertical-rl]">BOARDING PASS · 1A</div>
+              <div className="barcode h-16 w-full opacity-80" />
+            </div>
           </div>
         </div>
-      </div>
 
-      <button
-        type="button"
-        onClick={onBoard}
-        className="group mt-10 inline-flex items-center gap-3 rounded-full bg-gold px-8 py-4 font-mono text-[13px] font-semibold tracking-[0.3em] text-ink shadow-[0_0_0_0_rgba(212,168,83,0.5)] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_0_10px_rgba(212,168,83,0.12)]"
-      >
-        BOARD
-        <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">
-          <Plane size={16} />
-        </span>
-      </button>
-      <div className="mt-4 font-mono text-[11px] tracking-[0.2em] text-fg-dim">SOUND ON · 14 SECONDS</div>
 
-      <button
-        type="button"
-        onClick={onSkip}
-        className="absolute bottom-6 right-6 font-mono text-[11px] tracking-[0.25em] text-fg-dim underline-offset-4 hover:text-paper hover:underline md:bottom-8 md:right-10"
-      >
-        SKIP INTRO →
-      </button>
-    </motion.div>
+        <div className="mt-6 w-full max-w-[680px] sm:mt-10">
+          <div className="mb-3 text-center font-mono text-[11px] tracking-[0.3em] text-fg-dim">
+            HOW WOULD YOU LIKE TO BOARD?
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <button
+                type="button"
+              onClick={onBoard}
+              className="group flex flex-col rounded-2xl bg-gold px-6 py-4 text-left sm:py-5 text-ink shadow-[0_0_0_0_rgba(212,168,83,0.5)] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_0_10px_rgba(212,168,83,0.12)]"
+            >
+              <span className="flex items-center justify-between font-mono text-[13px] font-semibold tracking-[0.3em]">
+                CONTINUE
+                <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">
+                  <Plane size={16} />
+                </span>
+              </span>
+              <span className="mt-2 font-display text-[1.4rem] italic leading-tight">Get the full experience</span>
+              <span className="mt-3 font-mono text-[10px] tracking-[0.22em] text-ink/65">SOUND ON · 14-SECOND TAKEOFF</span>
+            </button>
+
+            <Link
+              href="/recruiter/"
+              className="group flex flex-col rounded-2xl border border-line-2 bg-ink/50 px-6 py-4 text-left sm:py-5 text-paper transition-[transform,border-color] duration-300 hover:-translate-y-0.5 hover:border-paper/60"
+            >
+              <span className="flex items-center justify-between font-mono text-[13px] font-semibold tracking-[0.3em]">
+                RECRUITER VIEW
+                <span aria-hidden className="inline-block transition-transform duration-300 group-hover:translate-x-1">
+                  →
+                </span>
+              </span>
+              <span className="mt-2 font-display text-[1.4rem] italic leading-tight text-paper/90">Résumé first, on one page</span>
+              <span className="mt-3 font-mono text-[10px] tracking-[0.22em] text-fg-dim">NO SOUND · NO INTRO</span>
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
-function Field({ k, v, wide }: { k: string; v: string; wide?: boolean }) {
+function Field({ k, v, wide, className = "" }: { k: string; v: string; wide?: boolean; className?: string }) {
   return (
-    <div className={wide ? "col-span-2" : ""}>
+    <div className={`${wide ? "col-span-2" : ""} ${className}`}>
       <dt className="text-[10px] tracking-[0.25em] text-ink/55">{k}</dt>
       <dd className="mt-0.5 text-[13px] font-semibold tracking-[0.08em]">{v}</dd>
     </div>

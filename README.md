@@ -15,17 +15,20 @@ npm run build      # static export to ./out
 ## How it is put together
 
 ```
-src/app/                 layout (fonts, metadata), page (section order), globals.css (tokens, keyframes)
-src/data/site.ts         ALL copy: profile, flight log, ventures, wrestling, layover, skills, nav
+src/app/                 root layout (fonts, metadata), globals.css (tokens, keyframes)
+  (experience)/          the full site: layout (song, intro, 3D layer, nav) and page (section order)
+  recruiter/             /recruiter, the no-sound résumé view
+src/data/site.ts         ALL copy: profile, flight log, ventures, wrestling, layover, skills, nav, recruiter view
 src/data/countries.json  the 23 visited countries (slug, ISO, flag, region, atlas id)
 src/data/*.generated.json  built by scripts, do not edit by hand
 src/lib/audio-cues.ts    where the song starts and where the buzzer lands
 src/components/
-  IntroGate.tsx          boarding pass -> alarm clock -> airplane -> reveal
+  IntroGate.tsx          boarding pass + choice (Continue / Recruiter view) -> alarm clock -> airplane -> reveal
   AlarmClock.tsx         the SVG clock, driven by the song's clock
   AudioProvider.tsx      the one <audio> element, shared by the intro and the nav button
   WorldMap.tsx, Stamp.tsx  outlines rendered from the generated geo data
   sections/              Hero, Passport, FlightLog, Cargo, Mat, Layover, Arrivals
+  recruiter/             the recruiter view's sections, all server-rendered
   three/                 "Night flight", the optional WebGL layer (see below)
 scripts/
   build-geo.mjs          world map + per-country stamp outlines from world-atlas
@@ -34,10 +37,28 @@ scripts/
   build-og.mjs           social share card from art-src/og-bg.png
 ```
 
+### Two ways in
+
+The first screen is the boarding pass with two choices:
+
+- **Continue** starts the full experience below: the song, the alarm-clock
+  intro, and the Night flight layer.
+- **Recruiter view** goes to `/recruiter/`, the résumé on one quiet page. It
+  sits outside the `(experience)` route group, so the audio element, the intro
+  and the WebGL code never load there. It is plain server-rendered HTML from
+  `site.ts` (the only client code is the copy-email button), in the daylight
+  version of the palette, with a print stylesheet.
+
+`/recruiter/` works as a direct link, so it can go straight into an
+application. The hero and footer of the full site link to it, and it links
+back. In `site.ts`, `recruiter.impact` holds the headline numbers and
+`recruiter.emphasis` the phrases the highlighter picks out of the bullets.
+A phrase that no longer matches the copy just stops being highlighted.
+
 ### The intro and the song
 
 `public/audio/theme.mp3` is the theme song. Playback starts at `SONG_START`
-(11 s) when the visitor taps BOARD, the clock rings at `BUZZER_AT` (21.85 s),
+(11 s) when the visitor taps Continue, the clock rings at `BUZZER_AT` (21.85 s),
 turns into the plane 0.7 s later, and the overlay clears 1.5 s after that.
 All four numbers live in `src/lib/audio-cues.ts`. The animation reads
 `audio.currentTime` every frame, so changing a number there is the whole edit.

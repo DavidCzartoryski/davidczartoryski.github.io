@@ -380,3 +380,51 @@ export const ventureDeep: Record<string, VentureDeep> = {
     stack: ["Python", "Pillow", "Shopify", "Liquid", "Meta CAPI"],
   },
 };
+
+/**
+ * The recruiter view (/recruiter): the résumé on one quiet page. It reuses the
+ * flight log, cargo, education and skills above; only what is unique to it
+ * lives here.
+ */
+export const recruiter = {
+  lede: "Software engineer and founder studying Computer Science and Business at Northeastern. Graduating December 2027 and looking for a new-grad software engineering role.",
+  /** Headline numbers; `href` jumps to the role or venture they come from. */
+  impact: [
+    { value: "120 ms", label: "update latency, down from a 5-second polling loop", source: "Mosaiq", href: "#mosaiq" },
+    { value: "70%", label: "off deployment time at a $42B+ AUM growth equity firm", source: "Summit Partners", href: "#summit" },
+    { value: "5,000+", label: "weekly active users on the platform I help run", source: "Pawtograder", href: "#pawtograder" },
+    { value: "22,000+", label: "riders under a conditional fare contract", source: "EternalTap", href: "#eternaltap" },
+    { value: "$180K", label: "revenue driven by an autonomous storefront builder", source: "Hercules Holdings", href: "#engine" },
+    { value: "1st", label: "of 250+ at the 2026 Microsoft × Northeastern AI Hackathon", source: "Northeastern", href: "#education" },
+  ],
+  /**
+   * Phrases picked out with a highlighter wherever they appear in a bullet.
+   * They have to match the copy above exactly; a phrase that stops matching
+   * just stops being highlighted.
+   */
+  emphasis: [
+    "5,000+ weekly active users",
+    "one of 15 engineers",
+    "Other schools have asked to adopt it.",
+    "Cut update latency to 120 ms",
+    "shared TypeScript API contracts",
+    "Cut deployment time 70%",
+    "12 engineer-hours per week",
+    "50+ company-issued devices",
+    "Cut 4 hours per deal review",
+    "Reduced query latency 30%",
+    "hundreds of Cisco switches",
+    "Cut inter-site latency 35%",
+    "1st place among 250+ participants",
+    "President of the Polish Club",
+    "22,000+ riders",
+    "800+ Plaid-aggregated transactions",
+    "$180K in revenue",
+    "from days to 6 minutes",
+  ],
+  beyond: [
+    { k: "Wrestling", v: "Massachusetts state champion, multiple titles. Still wrestles at Northeastern." },
+    { k: "Languages", v: "English, and Polish at heritage-speaker level." },
+    { k: "Travel", v: "23 countries so far, with home bases in San Francisco, Boston, and Warsaw." },
+  ],
+};

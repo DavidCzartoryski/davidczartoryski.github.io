@@ -15,6 +15,9 @@
   --paper-3: #d6c8a8;
   --gold: #d4a853;
   --gold-2: #f0cf85;
+  /* Gold that still reads as text on paper (5.2:1 on --paper). */
+  --gold-deep: #7a5c1a;
+  --paper-hi: #faf6ec;
   --ember: #c8502c;
   --stamp-red: #d63a2f;
   --stamp-blue: #3b5bb5;
@@ -41,6 +44,8 @@
   --color-paper-3: var(--paper-3);
   --color-gold: var(--gold);
   --color-gold-2: var(--gold-2);
+  --color-gold-deep: var(--gold-deep);
+  --color-paper-hi: var(--paper-hi);
   --color-ember: var(--ember);
   --color-stamp-red: var(--stamp-red);
   --color-stamp-blue: var(--stamp-blue);
@@ -289,4 +294,48 @@ html.nf-on :is(#passport, #flight-log, #cargo, #the-mat, #layover, #arrivals) :i
 /* The venture cards let the cargo hold glow through, just barely. */
 html.nf-on [data-venture] {
   background-color: rgb(11 16 32 / 0.8);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Recruiter view (/recruiter): daylight. The same paper, fonts and
+   gold as the passport, laid out as a document. No sound, no WebGL,
+   no scroll choreography.
+   ────────────────────────────────────────────────────────────── */
+html:has(.recruiter),
+html:has(.recruiter) body {
+  background: var(--paper);
+  color: var(--ink);
+}
+html:has(.recruiter) {
+  scroll-padding-top: 5rem;
+}
+.recruiter :focus-visible {
+  outline-color: var(--ink);
+}
+/* A highlighter stroke under the numbers worth seeing first. */
+.mark {
+  background-image: linear-gradient(transparent 58%, rgb(212 168 83 / 0.38) 58%, rgb(212 168 83 / 0.38) 92%, transparent 92%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.recruiter summary::-webkit-details-marker {
+  display: none;
+}
+@media print {
+  html:has(.recruiter),
+  html:has(.recruiter) body,
+  .recruiter {
+    background: #fff !important;
+  }
+  .recruiter .no-print {
+    display: none !important;
+  }
+  .recruiter :is(li, article, #impact-h + ul) {
+    break-inside: avoid;
+  }
+  /* Browsers drop backgrounds when printing by default; the contact card's cream-on-ink needs its ink. */
+  .recruiter #contact > div {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

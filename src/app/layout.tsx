@@ -2,11 +2,6 @@ import type { Metadata } from "next";
 import { Bodoni_Moda, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { SITE_URL, profile } from "@/data/site";
-import { AudioProvider } from "@/components/AudioProvider";
-import { IntroProvider } from "@/components/IntroContext";
-import IntroGate from "@/components/IntroGate";
-import Nav from "@/components/Nav";
-import NightFlight from "@/components/three/NightFlight";
 
 const bodoni = Bodoni_Moda({
   subsets: ["latin"],
@@ -69,16 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${bodoni.variable} ${instrument.variable} ${plexMono.variable} h-full`}
     >
-      <body className="grain min-h-full">
-        <AudioProvider>
-          <IntroProvider>
-            <IntroGate />
-            <NightFlight />
-            <Nav />
-            {children}
-          </IntroProvider>
-        </AudioProvider>
-      </body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
