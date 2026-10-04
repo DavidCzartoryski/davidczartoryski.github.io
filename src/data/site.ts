@@ -203,10 +203,10 @@ export const cargo: Cargo[] = [
     name: "Runtime straggler detection",
     sector: "AI infrastructure · GPU clusters",
     blurb:
-      "Catching slow workers during distributed GPU training across mixed NVIDIA and AMD clusters, based on the Meta work.",
+      "A runtime tool that finds the one slow node dragging down a distributed training job, across mixed NVIDIA and AMD clusters.",
     detail: [
-      "A synchronous training step only finishes when its slowest rank does, so one degraded worker sets the pace for the entire cluster. This finds it at runtime instead of in a post-mortem.",
-      "Mixed fleets are the hard part: NVIDIA and AMD expose performance differently, so the signal has to be normalized across both vendors before a straggler is separable from ordinary variance.",
+      "A synchronous training step only finishes when its slowest rank does, so a single slow node silently sets the pace for the entire job, and it is hard to tell which one. The tool monitors collective communication through NCCL on NVIDIA and RCCL on AMD to pinpoint the straggler while the job is still running.",
+      "It works across both vendors instead of locking into one, and it has to be fast enough to run alongside training, which is why I am teaching myself SIMD vector programming. It grew out of following Meta's and AMD's work on distributed training reliability, a problem hyperscalers are solving internally.",
     ],
     tone: "violet",
   },
@@ -282,24 +282,37 @@ export const ventureDeep: Record<string, VentureDeep> = {
         heading: "Why it is hard to catch",
         body: [
           "Nothing crashes. The job runs, the loss goes down, the dashboards look healthy. A straggler does not announce itself as a failure, it just shows up as a training run that is quietly costing a third more than it should, for weeks at a time.",
-          "The usual way you find out is after the fact, reading timings once the run is already paid for. Detecting it while the job is live is what makes it actionable: you can drain that machine and reschedule mid-run instead of eating the tax to the end.",
+          "The usual way you find out is after the fact, reading timings once the run is already paid for, and even then a job spans so many nodes that working out which one was slow is its own investigation. Detecting it while the job is live is what makes it actionable: you can drain that machine and reschedule mid-run instead of eating the tax to the end.",
+        ],
+      },
+      {
+        heading: "Watching the collectives",
+        body: [
+          "Distributed training synchronizes at collective operations, like the all-reduce that averages gradients every step. When one rank is slow, every other rank reaches the collective early and waits for it.",
+          "The tool monitors that collective communication through NCCL on NVIDIA and RCCL on AMD, so the rank everyone is waiting on stands out at runtime.",
         ],
       },
       {
         heading: "The mixed-vendor problem",
         body: [
-          "These clusters are not uniform. NVIDIA and AMD expose performance counters differently and have different baseline timing behavior, so a naive cross-vendor comparison reads an ordinary hardware difference as a fault and flags healthy machines.",
+          "These clusters are not uniform, so the tool works across both vendors instead of locking into one. NVIDIA and AMD expose performance counters differently and have different baseline timing behavior, so a naive cross-vendor comparison reads an ordinary hardware difference as a fault and flags healthy machines.",
           "The signal has to be normalized per vendor before a real straggler is separable from routine variance. Getting that boundary right is most of the work.",
+        ],
+      },
+      {
+        heading: "Fast enough to run alongside training",
+        body: [
+          "A detector that slows the job down defeats its own purpose, so detection has to keep pace with every training step. That is why I am teaching myself SIMD vector programming.",
         ],
       },
       {
         heading: "Where it comes from",
         body: [
-          "The approach grew out of multi-vendor GPU performance tracking work at Meta, across NVIDIA and AMD hardware.",
+          "It started with following the work Meta and AMD have been doing on distributed training reliability. Hyperscalers are tackling this problem internally, and it matters most at supercluster scale: the more GPUs a job spans, the more places a straggler can hide, and the more every slow step costs.",
         ],
       },
     ],
-    stack: ["NVIDIA", "AMD", "Python", "Distributed training"],
+    stack: ["NVIDIA", "AMD", "NCCL", "RCCL", "SIMD", "Python", "Distributed training"],
   },
 
   eternaltap: {
@@ -421,6 +434,7 @@ export const recruiter = {
     "800+ Plaid-aggregated transactions",
     "$180K in revenue",
     "from days to 6 minutes",
+    "NCCL on NVIDIA and RCCL on AMD",
   ],
   beyond: [
     { k: "Wrestling", v: "Massachusetts state champion, multiple titles. Still wrestles at Northeastern." },
