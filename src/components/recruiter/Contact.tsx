@@ -7,7 +7,7 @@ const YEAR = new Date().getFullYear();
 
 const rows = [
   { k: "EMAIL", v: profile.email, href: `mailto:${profile.email}` },
-  { k: "LINKEDIN", v: "linkedin.com/in/davidczartoryski", href: profile.linkedin },
+  { k: "LINKEDIN", v: "linkedin.com/in/david-czartoryski", href: profile.linkedin },
   { k: "GITHUB", v: "github.com/DavidCzartoryski", href: profile.github },
   { k: "RÉSUMÉ", v: "DavidCzartoryski_Resume.pdf", href: profile.resume },
 ];

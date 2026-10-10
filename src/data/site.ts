@@ -15,7 +15,7 @@ export const profile = {
     { code: "WAW", city: "Warsaw" },
   ],
   email: "czartoryski.d@northeastern.edu",
-  linkedin: "https://www.linkedin.com/in/davidczartoryski",
+  linkedin: "https://www.linkedin.com/in/david-czartoryski",
   github: "https://github.com/DavidCzartoryski",
   instagram: "https://www.instagram.com/dczar.ski/",
   tiktok: "https://www.tiktok.com/@dczar.ski",
