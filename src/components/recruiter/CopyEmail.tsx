@@ -3,7 +3,19 @@
 import { useEffect, useState } from "react";
 
 /** One click to the clipboard, for anyone pasting into an ATS or a scheduling tool. */
-export default function CopyEmail({ email, className }: { email: string; className?: string }) {
+export default function CopyEmail({
+  email,
+  className,
+  children,
+  label = ["COPY EMAIL", "COPIED ✓"],
+}: {
+  email: string;
+  className?: string;
+  /** Shown before the label, e.g. the address itself. */
+  children?: React.ReactNode;
+  /** Idle and confirmed wording. */
+  label?: [string, string];
+}) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -25,7 +37,8 @@ export default function CopyEmail({ email, className }: { email: string; classNa
         }
       }}
     >
-      <span aria-live="polite">{copied ? "COPIED ✓" : "COPY EMAIL"}</span>
+      {children}
+      <span aria-live="polite">{copied ? label[1] : label[0]}</span>
     </button>
   );
 }

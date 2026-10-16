@@ -79,6 +79,9 @@ export default function FlightLog() {
             <div className="md:col-span-9">
               <h3 className="font-display text-[length:var(--step-h3)] leading-tight tracking-tight">{education.school}</h3>
               <div className="mt-1 font-mono text-[11px] tracking-[0.25em] text-gold">{education.degree.toUpperCase()}</div>
+              <div className="mt-1 font-mono text-[10px] tracking-[0.22em] text-fg-dim">
+                {education.concentration.toUpperCase()}
+              </div>
               <ul className="mt-6 space-y-3 text-[15px] leading-relaxed text-fg-muted">
                 {education.bullets.map((b) => (
                   <li key={b} className="flex gap-3">
@@ -95,9 +98,9 @@ export default function FlightLog() {
       {/* carry-on: skills */}
       <Reveal className="mt-16">
         <div className="mb-6 font-mono text-[11px] tracking-[0.3em] text-fg-dim">CARRY-ON · TECHNICAL SKILLS</div>
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
           {skills.map((g) => (
-            <div key={g.group} className="bg-ink p-6">
+            <div key={g.group} className="bg-ink p-6 sm:last:col-span-2 lg:last:col-span-1">
               <div className="font-display text-xl tracking-tight">{g.group}</div>
               <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[11px] tracking-[0.12em] text-fg-muted">
                 {g.items.map((s) => (

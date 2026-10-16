@@ -6,53 +6,54 @@ import CopyEmail from "./CopyEmail";
 const YEAR = new Date().getFullYear();
 
 const rows = [
-  { k: "EMAIL", v: profile.email, href: `mailto:${profile.email}` },
-  { k: "LINKEDIN", v: "linkedin.com/in/david-czartoryski", href: profile.linkedin },
-  { k: "GITHUB", v: "github.com/DavidCzartoryski", href: profile.github },
-  { k: "RÉSUMÉ", v: "DavidCzartoryski_Resume.pdf", href: profile.resume },
+  { k: "Email", v: profile.email, href: `mailto:${profile.email}` },
+  { k: "LinkedIn", v: "linkedin.com/in/david-czartoryski", href: profile.linkedin },
+  { k: "GitHub", v: "github.com/DavidCzartoryski", href: profile.github },
+  { k: "Résumé", v: "DavidCzartoryski_Resume.pdf", href: profile.resume },
 ];
 
 export default function Contact() {
   return (
-    <section id="contact" className="mx-auto max-w-6xl px-6 pb-10">
-      <div className="grid gap-10 rounded-3xl bg-ink p-8 text-paper md:p-12 lg:grid-cols-12 lg:items-end">
-        <div className="lg:col-span-6">
-          <div className="font-mono text-[11px] tracking-[0.3em] text-gold">CONTACT</div>
-          <h2 className="mt-4 font-display text-[clamp(2.4rem,5vw,4rem)] leading-[0.95] tracking-[-0.02em]">
-            Let&rsquo;s <em className="italic text-gold-2">talk.</em>
+    <section id="contact" aria-labelledby="contact-h" className="scroll-mt-24 pt-24">
+      <div className="cv-inv grid gap-10 rounded-2xl bg-cv-inv p-7 text-cv-inv-fg ring-1 ring-cv-inv-line md:p-10">
+        <div>
+          <div className="font-mono text-[12px] text-cv-inv-accent">06</div>
+          <h2 id="contact-h" className="mt-3 text-[clamp(2rem,4vw,2.75rem)] font-semibold leading-none tracking-[-0.04em]">
+            Let&rsquo;s talk.
           </h2>
-          <p className="mt-5 max-w-md text-[16px] leading-relaxed text-fg-muted">
+          <p className="mt-4 max-w-md text-[15.5px] leading-relaxed text-cv-inv-muted">
             Graduating in December 2027 and interviewing for new-grad software engineering roles. Email is the fastest
             way to reach me.
           </p>
-          <div className="no-print mt-8 flex flex-wrap items-center gap-3">
+          <div className="no-print mt-7 flex flex-wrap items-center gap-2.5">
             <a
               href={`mailto:${profile.email}`}
-              className="inline-flex h-11 items-center gap-3 rounded-full bg-gold px-6 font-mono text-[11px] font-semibold tracking-[0.25em] text-ink transition-transform hover:-translate-y-0.5"
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-cv-inv-fg px-5 text-[14px] font-semibold text-cv-inv transition-opacity hover:opacity-90"
             >
-              SEND A MESSAGE →
+              Send a message →
             </a>
             <CopyEmail
               email={profile.email}
-              className="inline-flex h-11 items-center rounded-full border border-line-2 px-5 font-mono text-[11px] tracking-[0.22em] text-paper transition-colors hover:border-paper"
+              label={["Copy email", "Copied ✓"]}
+              className="inline-flex h-11 items-center rounded-lg px-4 text-[14px] font-medium text-cv-inv-fg ring-1 ring-inset ring-cv-inv-line transition-colors hover:bg-white/[0.06]"
             />
           </div>
         </div>
 
-        <ul className="overflow-hidden rounded-2xl border border-line lg:col-span-6">
+        <ul className="overflow-hidden rounded-xl ring-1 ring-cv-inv-line">
           {rows.map((r) => (
-            <li key={r.k} className="border-b border-line last:border-b-0">
+            <li key={r.k} className="border-b border-cv-inv-line last:border-b-0">
               <a
                 href={r.href}
                 target={r.href.startsWith("mailto:") ? undefined : "_blank"}
                 rel="noopener"
-                className="group grid grid-cols-[88px_1fr_auto] items-center gap-4 px-5 py-4 transition-colors hover:bg-ink-2"
+                className="group grid grid-cols-[72px_1fr_auto] sm:grid-cols-[96px_1fr_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-white/[0.04]"
               >
-                <span className="font-mono text-[10px] tracking-[0.3em] text-gold">{r.k}</span>
-                <span className="truncate font-mono text-[13px] tracking-[0.04em] text-paper">{r.v}</span>
+                <span className="text-[13px] text-cv-inv-muted">{r.k}</span>
+                <span className="truncate font-mono text-[13px] text-cv-inv-fg">{r.v}</span>
                 <span
                   aria-hidden
-                  className="font-mono text-[12px] text-fg-dim transition-transform group-hover:translate-x-1 group-hover:text-paper"
+                  className="text-[13px] text-cv-inv-muted transition-transform group-hover:translate-x-0.5 group-hover:text-cv-inv-fg"
                 >
                   →
                 </span>
@@ -67,15 +68,15 @@ export default function Contact() {
 
 export function Footer() {
   return (
-    <footer className="mx-auto flex max-w-6xl flex-col gap-3 px-6 pb-10 pt-2 font-mono text-[10px] tracking-[0.25em] text-ink/55 sm:flex-row sm:items-center sm:justify-between">
+    <footer className="flex flex-col gap-3 pb-10 pt-8 text-[13px] text-cv-faint sm:flex-row sm:items-center sm:justify-between">
       <span>
-        © {YEAR} {profile.name.toUpperCase()} · RECRUITER VIEW
+        © {YEAR} {profile.name}
       </span>
       <Link
         href="/"
-        className="no-print inline-flex items-center gap-2 text-gold-deep underline-offset-4 hover:text-ink hover:underline"
+        className="no-print inline-flex items-center gap-2 text-cv-muted underline-offset-4 hover:text-cv-fg hover:underline"
       >
-        PREFER THE SCENIC ROUTE? TAKE THE FULL EXPERIENCE <Plane size={11} />
+        Prefer the scenic route? Take the full experience <Plane size={12} />
       </Link>
     </footer>
   );

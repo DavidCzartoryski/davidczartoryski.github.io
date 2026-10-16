@@ -1,4 +1,5 @@
-import { cargo, studio } from "@/data/site";
+import { cargo, projects, studio } from "@/data/site";
+import ProjectCards from "../ProjectCards";
 import Reveal from "../Reveal";
 import SectionHeader from "../SectionHeader";
 import VentureCards from "../VentureCards";
@@ -51,6 +52,16 @@ export default function Cargo() {
         </div>
 
         <VentureCards />
+
+        <div className="mb-8 mt-24 flex flex-wrap items-center gap-4 font-mono text-[11px] tracking-[0.3em] text-fg-dim">
+          <span className="text-gold">ALSO ON BOARD</span>
+          <span className="h-px w-10 bg-line-2" />
+          <span>{String(projects.length).padStart(2, "0")} BUILT OUTSIDE THE STUDIO</span>
+          <span className="h-px w-10 bg-line-2" />
+          <span>OPEN SOURCE &amp; PROJECTS</span>
+        </div>
+
+        <ProjectCards />
       </div>
     </section>
   );

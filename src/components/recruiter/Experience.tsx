@@ -3,30 +3,36 @@ import { Bullets, Chips, SectionHead } from "./bits";
 
 export default function Experience() {
   return (
-    <section id="experience">
-      <SectionHead n="01" title="Experience" aside="NEWEST FIRST" />
-      <ol className="divide-y divide-ink/10">
+    <section id="experience" aria-labelledby="experience-h" className="scroll-mt-24 pt-24">
+      <SectionHead id="experience" n="02" title="Experience" aside="Newest first" />
+      <ol>
         {flightLog.map((leg) => {
           const current = /present/i.test(leg.range);
           return (
-            <li key={leg.id} id={leg.id} className="py-8 first:pt-3">
-              <article>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                  <h3 className="font-display text-[1.7rem] leading-tight tracking-tight">{leg.company}</h3>
-                  <div className="flex items-center gap-2 font-mono text-[12px] tracking-[0.08em] text-ink/70">
-                    {current && (
-                      <span className="rounded-sm bg-stamp-green/10 px-1.5 py-0.5 text-[9px] tracking-[0.2em] text-stamp-green">
-                        NOW
-                      </span>
-                    )}
-                    {leg.range}
-                  </div>
+            <li
+              key={leg.id}
+              id={leg.id}
+              className="group/leg grid scroll-mt-24 gap-x-8 gap-y-2 pb-12 last:pb-0 md:grid-cols-[150px_1fr] md:pb-0"
+            >
+              <div className="md:pt-[5px]">
+                <div className="font-mono text-[12px] text-cv-fg">{leg.range}</div>
+                <div className="mt-1 text-[13px] text-cv-faint">{leg.city}</div>
+              </div>
+              <article className="relative md:border-l md:border-cv-line md:pb-12 md:pl-8 md:group-last/leg:pb-0">
+                <span
+                  aria-hidden
+                  className={`absolute -left-[5px] top-[9px] hidden h-[9px] w-[9px] rounded-full md:block ${
+                    current ? "bg-cv-ok ring-4 ring-cv-ok-soft" : "bg-cv-bg ring-2 ring-inset ring-cv-line-2"
+                  }`}
+                />
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <h3 className="text-[1.35rem] font-semibold leading-tight tracking-[-0.025em]">{leg.company}</h3>
+                  {current && (
+                    <span className="rounded-full bg-cv-ok-soft px-2 py-0.5 text-[11px] font-semibold text-cv-ok">Current</span>
+                  )}
                 </div>
-                <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 font-mono text-[11px] tracking-[0.2em]">
-                  <span className="text-gold-deep">{leg.title.toUpperCase()}</span>
-                  <span className="text-ink/55">{leg.city.toUpperCase()}</span>
-                </div>
-                <Bullets items={leg.bullets} className="mt-5 text-[15px] text-ink/80" />
+                <div className="mt-0.5 text-[15px] font-medium text-cv-accent">{leg.title}</div>
+                <Bullets items={leg.bullets} className="mt-4 text-[15px] text-cv-muted" />
                 {leg.tech && (
                   <div className="mt-5">
                     <Chips items={leg.tech} />
