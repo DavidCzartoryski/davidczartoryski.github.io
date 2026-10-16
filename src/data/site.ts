@@ -7,7 +7,7 @@ export const profile = {
   role: "Software engineer & founder",
   school: "Northeastern University",
   degree: "B.S. Computer Science & Business Administration",
-  degreeNote: "Petition in progress to BSBA Finance with a CS minor",
+  concentration: "Corporate Innovation",
   graduation: "Dec 2027",
   bases: [
     { code: "SFO", city: "San Francisco" },
@@ -27,14 +27,14 @@ export const profile = {
     "Front-office, people-facing finance",
   ],
   excites:
-    "The work that actually pulls me in is making things faster. Load balancing, cutting latency, runtime, and cost: profiling a system until the bottleneck shows itself, then optimizing the code around it. Most of what I have shipped is a version of that same problem — a 5-second poll down to 120 ms, 70% off deployment time, 30% off query latency, and now straggler detection across GPU clusters.",
+    "The work that actually pulls me in is making things faster. Load balancing, cutting latency, runtime, and cost: profiling a system until the bottleneck shows itself, then optimizing the code around it. Most of what I have shipped is a version of that same problem — a 5-second poll down to 120 ms, 70% off deployment time, 30% off query latency, and now GPU clusters: a cross-vendor all-reduce 2.7x faster, and a detector that finds the one slow GPU holding a training job back.",
 };
 
 export const passportFacts = [
   { label: "Passenger", value: "CZARTORYSKI / DAVID" },
   { label: "Issued", value: "Boston, MA" },
   { label: "Nationality", value: "American · Polish heritage" },
-  { label: "Languages", value: "English · Polish" },
+  { label: "Languages", value: "English · Polish · Russian" },
   { label: "Countries", value: "23 stamped" },
   { label: "Class", value: "Founder" },
 ];
@@ -62,9 +62,12 @@ export const flightLog: Leg[] = [
     bullets: [
       "Operate a production coding and grading platform serving 5,000+ weekly active users across ten Northeastern CS courses, as one of 15 engineers shipping through daily standups and peer code review on a subteam of four that owns one service end to end.",
       "Set up telemetry for the Next.js and Supabase platform with the OpenTelemetry library, exporting metrics to Prometheus and visualizing them in Grafana dashboards.",
+      "Raised survey error-text contrast from 3.98:1 to 5.06:1 after finding 2 WCAG 1.4.3 failures the CI accessibility gate excluded, and extended the axe-core sweep to scan pages mid-interaction, now covering 40 routes.",
+      "Measured the CI accessibility gate's recall across 82 axe-core scans with 8 seeded defects: it caught 1 of 8, which made the case for scanning with every rule and in interaction states.",
+      "Traced 2 test suites crashing on import to a missing jsdom global, exposing 5 real failures hidden in the LLM-hint rate-limiting tests and a CI config that gated only 2 test files.",
       "Capstone with Prof. Jon Bell. The platform covers submissions, similarity checking, grading workflows, a gradebook with its own query language, a forum, polling, and real-time office hours. Other schools have asked to adopt it.",
     ],
-    tech: ["Next.js", "TypeScript", "Supabase", "OpenTelemetry", "Prometheus", "Grafana"],
+    tech: ["Next.js", "TypeScript", "Supabase", "OpenTelemetry", "Prometheus", "Grafana", "Playwright", "axe-core"],
   },
   {
     id: "mosaiq",
@@ -115,11 +118,13 @@ export const education = {
   school: "Northeastern University",
   city: "Boston, MA",
   degree: "B.S. Computer Science & Business Administration",
+  concentration: "Concentration in Corporate Innovation",
   range: "Expected Dec 2027",
   bullets: [
-    "Won 1st place among 250+ participants at the 2026 Microsoft x Northeastern AI Hackathon.",
-    "Combined CS and business program, with an active petition to transfer into BSBA Finance with a CS minor.",
+    "Won 1st place among 250+ participants at the 2026 Microsoft x Northeastern AI Hackathon (AI Builder Blitz) with HuskyClaw.",
+    "Coursework includes Financial Management and CS 4535, the capstone behind the Pawtograder role.",
     "President of the Polish Club (previously VP of the Polish Students Association). The club attended an international youth conference in Warsaw in summer 2026 on the future of Poland.",
+    "Wrestling at Northeastern, and a member of the NU AI Club.",
     "CookYourBooks: a Java OOP group project.",
   ],
 };
@@ -165,6 +170,7 @@ export const cargo: Cargo[] = [
     blurb: "A wallet-native fare platform for universities and transit agencies, built with a cofounder.",
     detail: [
       "Verifies rider eligibility against a university roster sync, prices MBTA fare rules, and ships a signed Apple Wallet pass. Next.js, TypeScript, Postgres.",
+      "Wrote the eligibility engine across 9 MBTA reduced and free fare categories, auto-verifying, rejecting, or routing each application to review, plus the entire rider web app and the native SwiftUI app, which reads date of birth from an ID with Vision OCR.",
       "Secured a conditional contract covering 22,000+ riders and drew venture interest. Now working go-to-market: university B2B contracts and MBTA partnership sequencing.",
     ],
     metric: { value: "22,000+", label: "riders under contract" },
@@ -178,6 +184,7 @@ export const cargo: Cargo[] = [
     blurb: "Aggregates your credit cards through Plaid and tells you which one to tap at checkout.",
     detail: [
       "An AI engine over 800+ Plaid-aggregated transactions per rolling three-month window prices missed rewards and surfaces the best card at the point of purchase.",
+      "Built solo end to end, with about 280 production deploys in six weeks: a SwiftUI app whose one location-triggered pipeline feeds lock-screen widgets, Live Activities and an Apple Watch complication, a FastAPI and Postgres backend on Plaid's production environment, and a Claude advisor grounded in card and transfer-partner data.",
       "Negotiated seed terms with venture firms and senior American Express leadership, then walked away from the round.",
     ],
     metric: { value: "800+", label: "transactions per window" },
@@ -193,6 +200,7 @@ export const cargo: Cargo[] = [
     detail: [
       "The storefront builder regenerates a whole shop per product category and tunes it against live sales, feeding heatmap and Meta Conversions API data back into its redesign decisions. $180K in revenue across the brands.",
       "The creative pipeline (Higgsfield MCP plus a Python Pillow compositor) takes ad production from days to 6 minutes, about 40 variants a week, with AI UGC video prompted through Kling 3.0 and Seedance 2.0. Shopify theme work in Liquid, JSON, and JS.",
+      "AdForge, the pipeline as a FastAPI and React service: Claude turns customer research into validated ad copy, the image model renders a text-free scene, and the compositor sets every word, so copy is always legible and exactly as written.",
     ],
     metric: { value: "$180K", label: "revenue driven" },
     tone: "red",
@@ -203,12 +211,103 @@ export const cargo: Cargo[] = [
     name: "Runtime straggler detection",
     sector: "AI infrastructure · GPU clusters",
     blurb:
-      "A runtime tool that finds the one slow node dragging down a distributed training job, across mixed NVIDIA and AMD clusters.",
+      "A runtime system that finds the slow GPU, slow link, or hung rank dragging down a distributed training job, across mixed NVIDIA and AMD clusters, without ever blocking training.",
     detail: [
       "A synchronous training step only finishes when its slowest rank does, so a single slow node silently sets the pace for the entire job, and it is hard to tell which one. The tool monitors collective communication through NCCL on NVIDIA and RCCL on AMD to pinpoint the straggler while the job is still running.",
-      "It works across both vendors instead of locking into one, and it has to be fast enough to run alongside training, which is why I am teaching myself SIMD vector programming. It grew out of following Meta's and AMD's work on distributed training reliability, a problem hyperscalers are solving internally.",
+      "In simulation it flags every injected slow GPU within 3 measurement windows with zero false positives across 2,000 noisy windows, and once calibrated to a cluster's own noise it catches a 2% slowdown, at about 0.2% of step time.",
+      "Hang detection with a flight recorder, NVML and AMD SMI telemetry that names a likely cause, an NCCL/RCCL profiler plugin in C, a Rust scoring core bit-identical to the Python reference, and batch rebalancing across vendors.",
     ],
+    metric: { value: "0.2%", label: "of step time, simulated" },
     tone: "violet",
+  },
+];
+
+export type Project = {
+  id: string;
+  name: string;
+  kind: string;
+  range: string;
+  status: string;
+  blurb: string;
+  bullets: string[];
+  /** Headline figures, shown only on the featured project. */
+  stats?: { value: string; label: string }[];
+  stack: string[];
+  links?: { href: string; label: string }[];
+  featured?: boolean;
+};
+
+/** Built outside the studio: open source, the hackathon winner, and personal agents. */
+export const projects: Project[] = [
+  {
+    id: "gpubridge",
+    name: "gpubridge",
+    kind: "Open source · GPU collective communication",
+    range: "Sep 2026 – Present",
+    status: "Public · MIT · v0.4.0-alpha",
+    featured: true,
+    blurb:
+      "A collective communication library that runs one distributed PyTorch training job across NVIDIA and AMD GPUs, a configuration no vendor library supports, because NCCL and RCCL communicators cannot talk to each other.",
+    bullets: [
+      "Keeps each vendor on its native library (NCCL on NVIDIA, RCCL on AMD) and joins the vendor islands with a reduce-bridge-broadcast path between island leaders, on stock PyTorch over any network. It registers as a torch.distributed backend, so unchanged DDP, FSDP2 and HSDP scripts run across vendors by changing one string.",
+      "Ran an NVIDIA V100 and an AMD MI50 in one heterogeneous Slurm job on Northeastern's Explorer cluster, training with DDP and FSDP2 (FSDP2 bit for bit against a replay). Pipeline parallelism across the two vendors ran at 1.05x one V100, and fp8 bridge compression doubled data-parallel throughput on a LLaMA-style model, 4,549 to 9,523 tokens/s.",
+      "Cut a 1 GB cross-vendor all-reduce 2.7x, from 1.67 s to 0.61 s, with fp8 compression whose Triton kernels run at up to ~100% of the GPU's copy bandwidth on V100, H200 and MI50. Also built a pipelined bridge on event-ordered CUDA streams, a sharded bridge, a UCX transport with GPUDirect RDMA flush, and a multi-stream TCP transport in Rust.",
+      "Validated on six GPU models (V100, T4, L40S, A100, H200, MI50) and fixed the 5 bugs only real hardware exposed; root-caused a deadlock in PyTorch's Gloo teardown and a silent HSDP hang between torch releases. 560+ test functions, 80 merged pull requests, and CI cut from 23 minutes to 7.",
+    ],
+    stats: [
+      { value: "2.7×", label: "faster 1 GB all-reduce across NVIDIA + AMD" },
+      { value: "2.1×", label: "data-parallel throughput with fp8" },
+      { value: "6", label: "GPU models validated on Explorer" },
+      { value: "560+", label: "test functions" },
+    ],
+    stack: ["PyTorch", "NCCL", "RCCL", "Triton", "CUDA", "ROCm", "C++", "Rust", "UCX", "Slurm"],
+    links: [{ href: "https://github.com/DavidCzartoryski/gpubridge", label: "github.com/DavidCzartoryski/gpubridge" }],
+  },
+  {
+    id: "huskyclaw",
+    name: "HuskyClaw",
+    kind: "AI agent · cofounded",
+    range: "Sep 2026 – Present",
+    status: "In beta · 1st place, AI Builder Blitz",
+    blurb:
+      "An agentic assistant built for Northeastern students. Text it a task (find co-ops, pick classes, prep for an interview) and it plans the work across registration, coursework and recruiting, with every real-world action behind the student's approval.",
+    bullets: [
+      "Won 1st place among 250+ participants at Microsoft's AI Builder Blitz, the launch challenge for Northeastern's AI Makerspace; now in beta with student testers.",
+      "Working with the Dean of Khoury College, Northeastern's Chief of AI and the Board of Trustees toward a university-wide launch on Northeastern's existing Anthropic partnership.",
+      "Designed a staging layer that turns every agent action into a reviewable diff the student approves, modeled on Terraform's plan and apply, which caps the blast radius and blocks prompt-injected actions.",
+    ],
+    stack: ["Claude", "Agents", "Human-in-the-loop"],
+    links: [{ href: "https://whoisaldo.github.io/huskyclaw-demo/", label: "20-second demo" }],
+  },
+  {
+    id: "inbox-triage",
+    name: "inbox-triage",
+    kind: "Open source · AI agent",
+    range: "Sep 2026 – Present",
+    status: "Public · MIT",
+    blurb:
+      "A Python agent that runs a student's job hunt from the inbox: it flags assessments, interviews and offers, files bulk mail by moving it rather than deleting, puts interviews on the calendar, scouts new postings, and on a yes tailors a one-page résumé.",
+    bullets: [
+      "Sends just 2 of 25 messages to the model on a real mailbox sample by putting allowlists, a weighted header prefilter and a verdict cache in front of Claude, and halved idle run time from 18.7 s to 9.0 s on a 4,046-message mailbox.",
+      "Scanned 1,535 job postings in 85 s: free filters first, then Claude ranks the remaining 428 against the résumé and recommends the best 20.",
+      "Sandboxed a headless Claude Code session that tailors résumés from untrusted job descriptions: writes confined to one build folder, shell limited to the build script and read-only git, and the run fails if the source résumé changes. 90 offline tests.",
+    ],
+    stack: ["Python", "Claude", "Claude Code", "AppleScript", "IMAP", "GitHub Actions"],
+    links: [{ href: "https://github.com/DavidCzartoryski/inbox-triage", label: "github.com/DavidCzartoryski/inbox-triage" }],
+  },
+  {
+    id: "sixthdegree",
+    name: "SixthDegree",
+    kind: "AI agent · local-first",
+    range: "Sep 2026",
+    status: "Private",
+    blurb:
+      "A local-first Claude agent on macOS that builds a private graph of everyone you know from Contacts, iMessage, LinkedIn exports and dictated notes, finds the shortest chain of people to whoever you need to reach, and drafts the first text.",
+    bullets: [
+      "A hand-written tool-use loop over 5 read-only tools and a SQLite graph with FTS5 search, where every fact and edge cites its source. Claude Opus reasons; Claude Haiku mines message history in bulk through the Message Batches API.",
+      'Entity resolution turns "Jordan\'s uncle" into a placeholder that merges once someone names him, and an iMessage bridge lets the agent answer texts from the owner\'s phone, with human approval before anything is sent.',
+    ],
+    stack: ["Python", "Claude", "SQLite", "FastAPI", "Pydantic"],
   },
 ];
 
@@ -242,7 +341,7 @@ export const layover = {
     {
       key: "languages",
       title: "Languages",
-      body: "Polish at home, at heritage-speaker level. On the road I collect enough of each language to order, thank, and get lost politely.",
+      body: "Polish at home, at heritage-speaker level, plus Russian. On the road I collect enough of each language to order, thank, and get lost politely.",
     },
     {
       key: "content",
@@ -254,9 +353,10 @@ export const layover = {
 };
 
 export const skills = [
-  { group: "Languages", items: ["Python", "Java", "TypeScript", "JavaScript", "C++", "SQL", "Bash", "Racket", "Liquid", "HTML/CSS"] },
-  { group: "Frameworks & AI", items: ["React", "Next.js", "Node.js", "Express", "Django", "Angular", "React Native", "LLM APIs", "RAG"] },
-  { group: "Infrastructure", items: ["Git", "Linux", "Docker", "PostgreSQL", "Supabase", "MongoDB", "Azure CLI", "GitHub Actions"] },
+  { group: "Languages", items: ["Python", "TypeScript", "JavaScript", "Java", "C++", "C", "Rust", "Swift", "SQL", "Bash", "Racket", "Liquid", "HTML/CSS"] },
+  { group: "Frameworks & AI", items: ["React", "Next.js", "Node.js", "Express", "FastAPI", "Django", "Angular", "SwiftUI", "React Native", "LLM APIs", "Claude tool use", "RAG"] },
+  { group: "GPU & distributed", items: ["PyTorch distributed", "NCCL", "RCCL", "Triton", "CUDA streams", "ROCm", "UCX", "Slurm"] },
+  { group: "Infrastructure", items: ["Git", "Linux", "Docker", "PostgreSQL", "Supabase", "MongoDB", "Azure CLI", "GitHub Actions", "OpenTelemetry", "Prometheus", "Grafana"] },
   { group: "Networking", items: ["TCP/IP", "BGP", "VLANs", "Routing & switching", "ACLs", "Firewall policy", "DNS"] },
 ];
 
@@ -289,20 +389,34 @@ export const ventureDeep: Record<string, VentureDeep> = {
         heading: "Watching the collectives",
         body: [
           "Distributed training synchronizes at collective operations, like the all-reduce that averages gradients every step. When one rank is slow, every other rank reaches the collective early and waits for it.",
-          "The tool monitors that collective communication through NCCL on NVIDIA and RCCL on AMD, so the rank everyone is waiting on stands out at runtime.",
+          "The tool monitors that collective communication through NCCL on NVIDIA and RCCL on AMD, so the rank everyone is waiting on stands out at runtime. For stock jobs, a profiler plugin written in C records device-side timing for every collective into a shared-memory ring, so the rank that arrives last is found even when only its forward or backward pass is slow.",
         ],
       },
       {
         heading: "The mixed-vendor problem",
         body: [
           "These clusters are not uniform, so the tool works across both vendors instead of locking into one. NVIDIA and AMD expose performance counters differently and have different baseline timing behavior, so a naive cross-vendor comparison reads an ordinary hardware difference as a fault and flags healthy machines.",
-          "The signal has to be normalized per vendor before a real straggler is separable from routine variance. Getting that boundary right is most of the work.",
+          "The signal has to be normalized per vendor before a real straggler is separable from routine variance. Each rank is scored against its peers on the same vendor and against its own baseline, so a vendor that is slower by design reads as load imbalance rather than as bad GPUs, and hardware classes keep mixed generations (V100, A100, H200, MI50) from misflagging. Getting that boundary right is most of the work.",
         ],
       },
       {
         heading: "Fast enough to run alongside training",
         body: [
-          "A detector that slows the job down defeats its own purpose, so detection has to keep pace with every training step. That is why I am teaching myself SIMD vector programming.",
+          "A detector that slows the job down defeats its own purpose. All cross-rank exchange runs on a background thread over the job's own store, so a slow or dead rank can never block training, and the whole thing costs about 0.2% of step time.",
+          "The scoring rules are ported to Rust, bit-identical to the Python reference across 2,000 seeded jobs and more than 3 million compared values.",
+        ],
+      },
+      {
+        heading: "From finding to fix",
+        body: [
+          "Every finding carries its cost in milliseconds per step and, through NVML and AMD SMI telemetry, a likely cause such as thermal throttling or a clock drop. Hangs are reported with a flight recorder that names the stuck rank and every rank's collective phase.",
+          "Imbalance turns into per-vendor batch sizes with exact gradient averaging: with AMD 20% slower, simulated step time falls 5.5%. One command attaches the detector to an unchanged training script, with a Prometheus exporter and a Grafana dashboard.",
+        ],
+      },
+      {
+        heading: "Where it stands",
+        body: [
+          "In simulation it flags every injected slow GPU within 3 measurement windows, with zero false positives across 2,000 noisy windows, and calibrated to a cluster's own noise it catches a 2% slowdown with zero false flags in 250,560 healthy rank-windows. 320+ test functions, and the kit for runs on Northeastern's Explorer GPU cluster is built.",
         ],
       },
       {
@@ -312,7 +426,7 @@ export const ventureDeep: Record<string, VentureDeep> = {
         ],
       },
     ],
-    stack: ["NVIDIA", "AMD", "NCCL", "RCCL", "SIMD", "Python", "Distributed training"],
+    stack: ["NVIDIA", "AMD", "NCCL", "RCCL", "PyTorch", "Python", "Rust", "C", "Prometheus"],
   },
 
   eternaltap: {
@@ -333,6 +447,13 @@ export const ventureDeep: Record<string, VentureDeep> = {
         ],
       },
       {
+        heading: "What I built",
+        body: [
+          "The eligibility engine: 9 categories, 5 free and 4 reduced, where each application is auto-verified, auto-rejected, or sent to human review, each category has its own re-verification period, student eligibility expires with the semester, and inspector-reported mismatches revoke it at two strikes. The MBTA's reduced-fare and Semester Pass rules live in code, with fares in integer cents.",
+          "Also the family accounts (guardian and dependent riders, a 30-minute claim code, an atomic account merge), magic-link login, about 70% of the database schema, the entire rider web app, and the entire iOS app: a SwiftUI mirror of the web flow with a Keychain-backed API client and Vision OCR that reads date of birth from an ID.",
+        ],
+      },
+      {
         heading: "Where it stands",
         body: [
           "Built with a cofounder. It has a conditional contract covering 22,000+ riders and has drawn venture interest.",
@@ -340,7 +461,7 @@ export const ventureDeep: Record<string, VentureDeep> = {
         ],
       },
     ],
-    stack: ["Next.js", "TypeScript", "Postgres", "Apple Wallet"],
+    stack: ["Next.js", "TypeScript", "Prisma", "Postgres", "Swift", "SwiftUI", "Apple Wallet"],
   },
 
   credimax: {
@@ -360,13 +481,22 @@ export const ventureDeep: Record<string, VentureDeep> = {
         ],
       },
       {
+        heading: "How it is built",
+        body: [
+          "Solo, end to end: 183 commits, about 12,800 lines of Swift and 6,700 of Python, and about 280 production deploys in six weeks, on Plaid's production environment.",
+          "On the phone, one location-triggered pipeline feeds four Apple surfaces: the app, home and lock-screen widgets, Live Activities, and an Apple Watch complication. A geofence wakes a background task that fetches the recommendation and writes it where the widgets and the watch can read it.",
+          "Behind it, a FastAPI and Postgres backend with a rewards engine across 16 cards and 12 spending categories, a Plaid sync that saves its cursor only after every page succeeds, tokens encrypted at rest, and a Claude advisor grounded in card and transfer-partner data, rate-limited behind authentication. Stripe billing, Sign in with Apple, and CCPA delete and export round it out.",
+        ],
+      },
+      {
         heading: "Where it stands",
         body: [
+          "The site and backend are live at credimax.app with the waitlist open, and the app is on its way to TestFlight.",
           "Negotiated seed terms with venture firms and with senior American Express leadership, then walked away from the round.",
         ],
       },
     ],
-    stack: ["iOS", "Plaid", "LLM APIs"],
+    stack: ["Swift", "SwiftUI", "WidgetKit", "FastAPI", "Postgres", "Plaid", "Claude", "Stripe"],
   },
 
   engine: {
@@ -382,6 +512,8 @@ export const ventureDeep: Record<string, VentureDeep> = {
         heading: "The creative pipeline",
         body: [
           "Higgsfield MCP plus a Python Pillow compositor takes ad production from days down to about 6 minutes, roughly 40 variants a week. AI UGC video is prompted through Kling 3.0 and Seedance 2.0.",
+          "AdForge runs it as a FastAPI and React service. Claude reads the customer-avatar and ad-angle research and returns validated JSON copy and a palette, Nano Banana Pro renders a scene with no text in it, and a custom Pillow compositor sets every word: outlined headline, auto-placed subhead, benefit callouts. Because the image model never draws text, the copy is always legible and exactly as written.",
+          "The agent-run version follows a per-product spec through the Higgsfield MCP server with locked settings, which is how a test run caught the provider silently swapping image models and halted before compositing.",
           "Underneath it is ordinary Shopify theme work: Liquid, JSON, and JavaScript.",
         ],
       },
@@ -390,7 +522,7 @@ export const ventureDeep: Record<string, VentureDeep> = {
         body: ["$180K in revenue across the brands it runs."],
       },
     ],
-    stack: ["Python", "Pillow", "Shopify", "Liquid", "Meta CAPI"],
+    stack: ["Python", "FastAPI", "React", "Pillow", "Claude", "Higgsfield MCP", "Shopify", "Liquid", "Meta CAPI"],
   },
 };
 
@@ -400,15 +532,18 @@ export const ventureDeep: Record<string, VentureDeep> = {
  * lives here.
  */
 export const recruiter = {
-  lede: "Software engineer and founder studying Computer Science and Business at Northeastern. Graduating December 2027 and looking for a new-grad software engineering role.",
-  /** Headline numbers; `href` jumps to the role or venture they come from. */
+  headline: "I build distributed systems and AI products, and the companies around them.",
+  lede: "Software engineer and founder studying Computer Science and Business Administration at Northeastern, graduating December 2027. Lately: an open-source library that trains one PyTorch job across NVIDIA and AMD GPUs, a runtime detector for the slow GPU in a training cluster, and agents built on Claude. Looking for a new-grad software engineering role.",
+  /** Headline numbers; `href` jumps to the role, venture or project they come from. */
   impact: [
+    { value: "2.7×", label: "faster 1 GB all-reduce across NVIDIA and AMD GPUs", source: "gpubridge", href: "#gpubridge" },
     { value: "120 ms", label: "update latency, down from a 5-second polling loop", source: "Mosaiq", href: "#mosaiq" },
     { value: "70%", label: "off deployment time at a $42B+ AUM growth equity firm", source: "Summit Partners", href: "#summit" },
     { value: "5,000+", label: "weekly active users on the platform I help run", source: "Pawtograder", href: "#pawtograder" },
     { value: "22,000+", label: "riders under a conditional fare contract", source: "EternalTap", href: "#eternaltap" },
     { value: "$180K", label: "revenue driven by an autonomous storefront builder", source: "Hercules Holdings", href: "#engine" },
-    { value: "1st", label: "of 250+ at the 2026 Microsoft × Northeastern AI Hackathon", source: "Northeastern", href: "#education" },
+    { value: "~280", label: "production deploys in six weeks, built solo", source: "CrediMax", href: "#credimax" },
+    { value: "1st", label: "of 250+ at the 2026 Microsoft × Northeastern AI Hackathon", source: "HuskyClaw", href: "#huskyclaw" },
   ],
   /**
    * Phrases picked out with a highlighter wherever they appear in a bullet.
@@ -418,6 +553,9 @@ export const recruiter = {
   emphasis: [
     "5,000+ weekly active users",
     "one of 15 engineers",
+    "from 3.98:1 to 5.06:1",
+    "it caught 1 of 8",
+    "5 real failures",
     "Other schools have asked to adopt it.",
     "Cut update latency to 120 ms",
     "shared TypeScript API contracts",
@@ -431,14 +569,27 @@ export const recruiter = {
     "1st place among 250+ participants",
     "President of the Polish Club",
     "22,000+ riders",
+    "9 MBTA reduced and free fare categories",
     "800+ Plaid-aggregated transactions",
+    "about 280 production deploys in six weeks",
     "$180K in revenue",
     "from days to 6 minutes",
     "NCCL on NVIDIA and RCCL on AMD",
+    "zero false positives across 2,000 noisy windows",
+    "catches a 2% slowdown",
+    "changing one string",
+    "1.05x one V100",
+    "4,549 to 9,523 tokens/s",
+    "Cut a 1 GB cross-vendor all-reduce 2.7x",
+    "six GPU models",
+    "2 of 25 messages",
+    "from 18.7 s to 9.0 s",
+    "1,535 job postings in 85 s",
+    "Board of Trustees",
   ],
   beyond: [
     { k: "Wrestling", v: "Massachusetts state champion, multiple titles. Still wrestles at Northeastern." },
-    { k: "Languages", v: "English, and Polish at heritage-speaker level." },
+    { k: "Languages", v: "English, Polish at heritage-speaker level, and Russian." },
     { k: "Travel", v: "23 countries so far, with home bases in San Francisco, Boston, and Warsaw." },
   ],
 };

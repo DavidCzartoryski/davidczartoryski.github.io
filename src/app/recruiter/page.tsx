@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { SITE_URL, profile } from "@/data/site";
+import Background from "@/components/recruiter/Background";
 import Contact, { Footer } from "@/components/recruiter/Contact";
 import Experience from "@/components/recruiter/Experience";
-import Header from "@/components/recruiter/Header";
-import Impact from "@/components/recruiter/Impact";
-import Sidebar from "@/components/recruiter/Sidebar";
+import Overview from "@/components/recruiter/Overview";
+import Projects from "@/components/recruiter/Projects";
+import Rail from "@/components/recruiter/Rail";
 import TopBar from "@/components/recruiter/TopBar";
 import Ventures from "@/components/recruiter/Ventures";
 
 const TITLE = `${profile.name} · Résumé`;
 const DESCRIPTION =
-  "David Czartoryski's résumé: software engineer and founder at Northeastern University, graduating December 2027. Pawtograder, Mosaiq Software, Summit Partners, Whalley Computer Associates, and Hercules Holdings.";
+  "David Czartoryski's résumé: software engineer and founder at Northeastern University, graduating December 2027. Pawtograder, Mosaiq Software, Summit Partners, Whalley Computer Associates, Hercules Holdings, and gpubridge.";
 // Defining openGraph here replaces the root's, file-based images included, so
 // point back at the same share cards (src/app/opengraph-image.png, twitter-image.png).
 const CARD = {
@@ -42,30 +43,28 @@ export const metadata: Metadata = {
 
 /**
  * The recruiter view: the résumé on one quiet page. Rendered entirely on the
- * server from src/data/site.ts; it sits outside the (experience) route group,
- * so the song, the intro and the WebGL layer never load here.
+ * server from src/data/site.ts (the section index and copy-email buttons are
+ * the only client code); it sits outside the (experience) route group, so the
+ * song, the intro and the WebGL layer never load here.
  */
 export default function RecruiterPage() {
   return (
-    <div className="recruiter paper min-h-screen">
+    <div id="top" className="recruiter min-h-screen">
       <TopBar />
-      <main>
-        <Header />
-        <Impact />
-        <div className="mx-auto grid max-w-6xl gap-16 px-6 py-20 lg:grid-cols-12 lg:gap-12">
-          <div className="lg:col-span-8">
+      <div className="mx-auto max-w-[1360px] lg:flex">
+        <Rail />
+        <main className="min-w-0 flex-1">
+          <div className="mx-auto max-w-[880px] px-6 pt-12 lg:px-12 lg:pt-16 xl:px-16">
+            <Overview />
             <Experience />
+            <Ventures />
+            <Projects />
+            <Background />
+            <Contact />
+            <Footer />
           </div>
-          <div className="lg:col-span-4">
-            <Sidebar />
-          </div>
-        </div>
-        <div className="mx-auto max-w-6xl px-6 pb-20">
-          <Ventures />
-        </div>
-        <Contact />
-      </main>
-      <Footer />
+        </main>
+      </div>
     </div>
   );
 }

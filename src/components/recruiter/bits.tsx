@@ -8,12 +8,12 @@ const EMPHASIS = new RegExp(
 );
 
 /** A bullet with its résumé-worthy phrases run through the highlighter. */
-export function Emphasis({ text }: { text: string }) {
+export function Emphasis({ text, inv }: { text: string; inv?: boolean }) {
   return (
     <>
       {text.split(EMPHASIS).map((part, i) =>
         i % 2 === 1 ? (
-          <strong key={i} className="mark font-semibold text-ink">
+          <strong key={i} className={`mark font-semibold ${inv ? "text-cv-inv-fg" : "text-cv-fg"}`}>
             {part}
           </strong>
         ) : (
@@ -24,47 +24,35 @@ export function Emphasis({ text }: { text: string }) {
   );
 }
 
-export function SectionHead({
-  n,
-  title,
-  aside,
-  small,
-}: {
-  n: string;
-  title: React.ReactNode;
-  aside?: React.ReactNode;
-  small?: boolean;
-}) {
+/** Small uppercase mono label: kickers, table headings, metadata. */
+export function Label({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <span className={`block font-mono text-[11px] uppercase tracking-[0.12em] ${className}`}>{children}</span>;
+}
+
+export function SectionHead({ id, n, title, aside }: { id: string; n: string; title: string; aside?: string }) {
   return (
-    <div
-      className={`flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ink/15 ${
-        small ? "mb-5 pb-3" : "mb-6 pb-4"
-      }`}
-    >
-      <h2 className="flex items-baseline gap-3">
-        <span className="font-mono text-[11px] tracking-[0.3em] text-gold-deep">{n}</span>
-        <span
-          className={`font-display leading-none tracking-[-0.02em] ${
-            small ? "text-[1.6rem]" : "text-[clamp(2rem,3.4vw,2.6rem)]"
-          }`}
-        >
-          {title}
-        </span>
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-cv-line pb-4">
+      <h2 id={`${id}-h`} className="flex items-baseline gap-3">
+        <span className="font-mono text-[12px] text-cv-accent">{n}</span>
+        <span className="text-[clamp(1.75rem,3vw,2.25rem)] font-semibold leading-none tracking-[-0.03em]">{title}</span>
       </h2>
-      {aside && <p className="font-mono text-[10px] tracking-[0.25em] text-ink/55">{aside}</p>}
+      {aside && <Label className="text-cv-faint">{aside}</Label>}
     </div>
   );
 }
 
-/** Bullet list shared by roles, ventures and education. */
-export function Bullets({ items, className = "" }: { items: string[]; className?: string }) {
+/** Bullet list shared by roles, ventures, projects and education. */
+export function Bullets({ items, inv, className = "" }: { items: string[]; inv?: boolean; className?: string }) {
   return (
     <ul className={`space-y-2.5 leading-relaxed ${className}`}>
       {items.map((b) => (
         <li key={b} className="flex gap-3">
-          <span aria-hidden className="mt-[0.7em] h-1 w-1 shrink-0 rounded-full bg-ink/40" />
+          <span
+            aria-hidden
+            className={`mt-[0.68em] h-[5px] w-[5px] shrink-0 rounded-full ${inv ? "bg-cv-inv-accent" : "bg-cv-line-2"}`}
+          />
           <span>
-            <Emphasis text={b} />
+            <Emphasis text={b} inv={inv} />
           </span>
         </li>
       ))}
@@ -72,17 +60,53 @@ export function Bullets({ items, className = "" }: { items: string[]; className?
   );
 }
 
-export function Chips({ items }: { items: string[] }) {
+export function Chips({ items, inv }: { items: string[]; inv?: boolean }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <ul className="flex flex-wrap gap-1.5" aria-label="Stack">
       {items.map((t) => (
-        <span
+        <li
           key={t}
-          className="rounded-full border border-ink/15 px-2.5 py-0.5 font-mono text-[10px] tracking-[0.14em] text-ink/65"
+          className={`rounded-md px-2 py-[3px] font-mono text-[11px] ${
+            inv ? "bg-white/[0.07] text-cv-inv-muted" : "bg-cv-surface text-cv-muted ring-1 ring-inset ring-cv-line"
+          }`}
         >
-          {t.toUpperCase()}
-        </span>
+          {t}
+        </li>
       ))}
-    </div>
+    </ul>
+  );
+}
+
+/** "Read the full breakdown": the long-form copy, folded away until asked for. */
+export function Breakdown({
+  tagline,
+  sections,
+}: {
+  tagline: string;
+  sections: { heading: string; body: string[] }[];
+}) {
+  return (
+    <details className="group no-print mt-6 border-t border-cv-line pt-4">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-2 text-[14px] font-medium text-cv-accent transition-opacity hover:opacity-80">
+        <span aria-hidden className="text-[11px] transition-transform group-open:rotate-90">
+          ▶
+        </span>
+        <span className="group-open:hidden">Read the full breakdown</span>
+        <span className="hidden group-open:inline">Hide the breakdown</span>
+      </summary>
+      <div className="mt-5 space-y-6">
+        <p className="text-[1.15rem] font-medium leading-snug tracking-[-0.01em]">{tagline}</p>
+        {sections.map((s) => (
+          <div key={s.heading}>
+            <h5 className="text-[14px] font-semibold">{s.heading}</h5>
+            {s.body.map((p) => (
+              <p key={p} className="mt-2 text-[14.5px] leading-relaxed text-cv-muted">
+                {p}
+              </p>
+            ))}
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }

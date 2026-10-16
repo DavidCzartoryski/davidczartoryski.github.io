@@ -18,7 +18,7 @@ npm run build      # static export to ./out
 src/app/                 root layout (fonts, metadata), globals.css (tokens, keyframes)
   (experience)/          the full site: layout (song, intro, 3D layer, nav) and page (section order)
   recruiter/             /recruiter, the no-sound résumé view
-src/data/site.ts         ALL copy: profile, flight log, ventures, wrestling, layover, skills, nav, recruiter view
+src/data/site.ts         ALL copy: profile, flight log, ventures, projects, wrestling, layover, skills, nav, recruiter view
 src/data/countries.json  the 23 visited countries (slug, ISO, flag, region, atlas id)
 src/data/*.generated.json  built by scripts, do not edit by hand
 src/lib/audio-cues.ts    where the song starts and where the buzzer lands
@@ -46,14 +46,21 @@ The first screen is the boarding pass with two choices:
 - **Recruiter view** goes to `/recruiter/`, the résumé on one quiet page. It
   sits outside the `(experience)` route group, so the audio element, the intro
   and the WebGL code never load there. It is plain server-rendered HTML from
-  `site.ts` (the only client code is the copy-email button), in the daylight
-  version of the palette, with a print stylesheet.
+  `site.ts` (the only client code is the section index and the copy-email
+  buttons), with a print stylesheet.
 
 `/recruiter/` works as a direct link, so it can go straight into an
 application. The hero and footer of the full site link to it, and it links
 back. In `site.ts`, `recruiter.impact` holds the headline numbers and
 `recruiter.emphasis` the phrases the highlighter picks out of the bullets.
 A phrase that no longer matches the copy just stops being highlighted.
+
+The recruiter view has its own palette rather than the passport's: white,
+near-black, cool greys and one cobalt accent, with a dark version that follows
+the visitor's system setting. Its colours are the `--cv-*` variables at the
+bottom of `globals.css`, used as `bg-cv-*`, `text-cv-*` and so on, so changing
+the palette is an edit there and nowhere else. On wide screens a sticky rail on
+the left holds the name, the section index and the contact buttons.
 
 ### The intro and the song
 
