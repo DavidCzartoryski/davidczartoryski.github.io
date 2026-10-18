@@ -11,7 +11,7 @@ import Ventures from "@/components/recruiter/Ventures";
 
 const TITLE = `${profile.name} · Résumé`;
 const DESCRIPTION =
-  "David Czartoryski's résumé: software engineer and founder at Northeastern University, graduating December 2027. Pawtograder, Mosaiq Software, Summit Partners, Whalley Computer Associates, Hercules Holdings, and gpubridge.";
+  "David Czartoryski's résumé: software engineer, AI Infrastructure Researcher at Northeastern University's HPC Research Lab (MGHPCC), and founder. Mixed-vendor GPU training, Rust runtime diagnostics, gpubridge, Pawtograder, Summit Partners, and Hercules Holdings.";
 // Defining openGraph here replaces the root's, file-based images included, so
 // point back at the same share cards (src/app/opengraph-image.png, twitter-image.png).
 const CARD = {

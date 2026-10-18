@@ -81,13 +81,15 @@ export function Chips({ items, inv }: { items: string[]; inv?: boolean }) {
 export function Breakdown({
   tagline,
   sections,
+  inv,
 }: {
   tagline: string;
   sections: { heading: string; body: string[] }[];
+  inv?: boolean;
 }) {
   return (
-    <details className="group no-print mt-6 border-t border-cv-line pt-4">
-      <summary className="inline-flex cursor-pointer list-none items-center gap-2 text-[14px] font-medium text-cv-accent transition-opacity hover:opacity-80">
+    <details className={`group no-print mt-6 border-t pt-4 ${inv ? "border-cv-inv-line" : "border-cv-line"}`}>
+      <summary className={`inline-flex cursor-pointer list-none items-center gap-2 text-[14px] font-medium transition-opacity hover:opacity-80 ${inv ? "text-cv-inv-accent" : "text-cv-accent"}`}>
         <span aria-hidden className="text-[11px] transition-transform group-open:rotate-90">
           ▶
         </span>
@@ -100,7 +102,7 @@ export function Breakdown({
           <div key={s.heading}>
             <h5 className="text-[14px] font-semibold">{s.heading}</h5>
             {s.body.map((p) => (
-              <p key={p} className="mt-2 text-[14.5px] leading-relaxed text-cv-muted">
+              <p key={p} className={`mt-2 text-[14.5px] leading-relaxed ${inv ? "text-cv-inv-muted" : "text-cv-muted"}`}>
                 {p}
               </p>
             ))}

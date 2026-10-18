@@ -1,12 +1,12 @@
-import { projects, type Project } from "@/data/site";
-import { Bullets, Chips, Label, SectionHead } from "./bits";
+import { projects, ventureDeep, type Project } from "@/data/site";
+import { Breakdown, Bullets, Chips, Label, SectionHead } from "./bits";
 
 export default function Projects() {
   const featured = projects.find((p) => p.featured);
   const rest = projects.filter((p) => p !== featured);
   return (
     <section id="projects" aria-labelledby="projects-h" className="scroll-mt-24 pt-24">
-      <SectionHead id="projects" n="04" title="Projects" aside="Open source & independent" />
+      <SectionHead id="projects" n="04" title="Projects" aside="Research, open source & independent" />
       <ul className="space-y-4">
         {featured && <Featured p={featured} />}
         {rest.map((p) => (
@@ -51,6 +51,11 @@ function Featured({ p }: { p: Project }) {
         <div className="p-6 md:p-8">
           <Bullets items={p.bullets} inv className="text-[14.5px] text-cv-inv-muted" />
           <Foot p={p} inv />
+          {p.id === "gpubridge" && (
+            <div id="straggler" className="scroll-mt-24">
+              <Breakdown tagline={ventureDeep.straggler.tagline} sections={ventureDeep.straggler.sections} inv />
+            </div>
+          )}
         </div>
       </article>
     </li>
