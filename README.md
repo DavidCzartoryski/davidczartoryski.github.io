@@ -45,9 +45,10 @@ The first screen is the boarding pass with two choices:
   intro, and the Night flight layer.
 - **Recruiter view** goes to `/recruiter/`, the résumé on one quiet page. It
   sits outside the `(experience)` route group, so the audio element, the intro
-  and the WebGL code never load there. It is plain server-rendered HTML from
-  `site.ts` (the only client code is the section index and the copy-email
-  buttons), with a print stylesheet.
+  and the WebGL code never load there. It is server-rendered HTML from
+  `site.ts`; the client code is the starfield canvas, the section index, the
+  floating résumé and back-to-top buttons and the copy-email buttons. It has a
+  print stylesheet that prints ink on paper with every "More" fold open.
 
 `/recruiter/` works as a direct link, so it can go straight into an
 application. The hero and footer of the full site link to it, and it links
@@ -55,12 +56,15 @@ back. In `site.ts`, `recruiter.impact` holds the headline numbers and
 `recruiter.emphasis` the phrases the highlighter picks out of the bullets.
 A phrase that no longer matches the copy just stops being highlighted.
 
-The recruiter view has its own palette rather than the passport's: white,
-near-black, cool greys and one cobalt accent, with a dark version that follows
-the visitor's system setting. Its colours are the `--cv-*` variables at the
-bottom of `globals.css`, used as `bg-cv-*`, `text-cv-*` and so on, so changing
-the palette is an edit there and nowhere else. On wide screens a sticky rail on
-the left holds the name, the section index and the contact buttons.
+The recruiter view has its own look rather than the passport's: a night sky.
+Near-black, warm off-white and one amber accent, set in Geist and Geist Mono
+(loaded on that page only), over a canvas of twinkling stars, two faint orbits
+and the odd meteor (`Starfield.tsx`, a still frame under reduced motion). Its
+colours are the `--cv-*` variables at the bottom of `globals.css`, used as
+`bg-cv-*`, `text-cv-*` and so on, so changing the palette is an edit there and
+nowhere else. A sticky header carries the section index; roles, ventures and
+projects show their first lines and fold the rest behind "More". Stack icons
+come from `simple-icons`, mapped by skill name in `recruiter/icons.tsx`.
 
 ### The intro and the song
 

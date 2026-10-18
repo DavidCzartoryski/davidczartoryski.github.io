@@ -2,65 +2,48 @@ import Link from "next/link";
 import { profile } from "@/data/site";
 import Plane from "../Plane";
 import CopyEmail from "./CopyEmail";
+import { SectionHead } from "./bits";
+import { GitHub, LinkedIn, Mail, Pin } from "./icons";
 
 const YEAR = new Date().getFullYear();
 
-const rows = [
-  { k: "Email", v: profile.email, href: `mailto:${profile.email}` },
-  { k: "LinkedIn", v: "linkedin.com/in/david-czartoryski", href: profile.linkedin },
-  { k: "GitHub", v: "github.com/DavidCzartoryski", href: profile.github },
-  { k: "Résumé", v: "DavidCzartoryski_Resume.pdf", href: profile.resume },
-];
+const circle =
+  "inline-flex h-11 w-11 items-center justify-center rounded-full border border-cv-line-2 bg-white/[0.02] text-cv-fg transition-colors hover:border-cv-fg/30 hover:bg-white/[0.05]";
 
 export default function Contact() {
   return (
-    <section id="contact" aria-labelledby="contact-h" className="scroll-mt-24 pt-24">
-      <div className="cv-inv grid gap-10 rounded-2xl bg-cv-inv p-7 text-cv-inv-fg ring-1 ring-cv-inv-line md:p-10">
-        <div>
-          <div className="font-mono text-[12px] text-cv-inv-accent">06</div>
-          <h2 id="contact-h" className="mt-3 text-[clamp(2rem,4vw,2.75rem)] font-semibold leading-none tracking-[-0.04em]">
-            Let&rsquo;s talk.
-          </h2>
-          <p className="mt-4 max-w-md text-[15.5px] leading-relaxed text-cv-inv-muted">
-            Graduating in December 2027 and interviewing for new-grad software engineering roles. Email is the fastest
-            way to reach me.
-          </p>
-          <div className="no-print mt-7 flex flex-wrap items-center gap-2.5">
-            <a
-              href={`mailto:${profile.email}`}
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-cv-inv-fg px-5 text-[14px] font-semibold text-cv-inv transition-opacity hover:opacity-90"
-            >
-              Send a message →
-            </a>
-            <CopyEmail
-              email={profile.email}
-              label={["Copy email", "Copied ✓"]}
-              className="inline-flex h-11 items-center rounded-lg px-4 text-[14px] font-medium text-cv-inv-fg ring-1 ring-inset ring-cv-inv-line transition-colors hover:bg-white/[0.06]"
-            />
-          </div>
+    <section id="contact" aria-labelledby="contact-h" className="scroll-mt-28 pb-16 pt-32 text-center md:pb-24 md:pt-44">
+      <SectionHead id="contact" n="08" kicker="Contact" title="Let's talk" center />
+      <p className="mx-auto -mt-4 max-w-md text-balance text-[15.5px] leading-relaxed text-cv-muted">
+        Graduating in December 2027 and interviewing for new-grad software engineering roles. Email is the fastest way
+        to reach me.
+      </p>
+      <div className="mt-9 flex flex-col items-center gap-4">
+        <a
+          href={`mailto:${profile.email}`}
+          className="inline-flex h-[52px] items-center gap-3 rounded-full bg-cv-fg px-7 text-[15px] font-medium text-cv-bg transition-opacity hover:opacity-90"
+        >
+          <Mail size={16} /> {profile.email}
+        </a>
+        <div className="no-print flex items-center gap-3">
+          <a href={profile.github} target="_blank" rel="noopener" aria-label="GitHub" className={circle}>
+            <GitHub size={16} />
+          </a>
+          <a href={profile.linkedin} target="_blank" rel="noopener" aria-label="LinkedIn" className={circle}>
+            <LinkedIn size={16} />
+          </a>
+          <CopyEmail
+            email={profile.email}
+            label={["Copy email", "Copied ✓"]}
+            className="inline-flex h-11 items-center rounded-full border border-cv-line-2 bg-white/[0.02] px-4 text-[13px] text-cv-muted transition-colors hover:border-cv-fg/30 hover:text-cv-fg"
+          />
         </div>
-
-        <ul className="overflow-hidden rounded-xl ring-1 ring-cv-inv-line">
-          {rows.map((r) => (
-            <li key={r.k} className="border-b border-cv-inv-line last:border-b-0">
-              <a
-                href={r.href}
-                target={r.href.startsWith("mailto:") ? undefined : "_blank"}
-                rel="noopener"
-                className="group grid grid-cols-[72px_1fr_auto] sm:grid-cols-[96px_1fr_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-white/[0.04]"
-              >
-                <span className="text-[13px] text-cv-inv-muted">{r.k}</span>
-                <span className="truncate font-mono text-[13px] text-cv-inv-fg">{r.v}</span>
-                <span
-                  aria-hidden
-                  className="text-[13px] text-cv-inv-muted transition-transform group-hover:translate-x-0.5 group-hover:text-cv-inv-fg"
-                >
-                  →
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
+        <p className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-cv-faint">
+          <Pin size={13} /> {profile.bases.map((b) => b.city).join(" · ")}
+        </p>
+        <p className="hidden text-[13px] text-cv-muted print:block">
+          linkedin.com/in/david-czartoryski · github.com/DavidCzartoryski
+        </p>
       </div>
     </section>
   );
@@ -68,16 +51,19 @@ export default function Contact() {
 
 export function Footer() {
   return (
-    <footer className="flex flex-col gap-3 pb-10 pt-8 text-[13px] text-cv-faint sm:flex-row sm:items-center sm:justify-between">
-      <span>
-        © {YEAR} {profile.name}
-      </span>
-      <Link
-        href="/"
-        className="no-print inline-flex items-center gap-2 text-cv-muted underline-offset-4 hover:text-cv-fg hover:underline"
-      >
-        Prefer the scenic route? Take the full experience <Plane size={12} />
-      </Link>
+    <footer className="border-t border-cv-line">
+      {/* Bottom padding keeps the floating résumé button off the links. */}
+      <div className="mx-auto flex max-w-[1152px] flex-col gap-3 px-6 pb-28 pt-8 text-[13px] text-cv-faint sm:flex-row sm:items-center sm:justify-between md:px-10">
+        <span>
+          © {YEAR} {profile.name}
+        </span>
+        <Link
+          href="/"
+          className="no-print inline-flex items-center gap-2 text-cv-muted underline-offset-4 hover:text-cv-fg hover:underline"
+        >
+          Prefer the scenic route? Take the full experience <Plane size={12} />
+        </Link>
+      </div>
     </footer>
   );
 }
