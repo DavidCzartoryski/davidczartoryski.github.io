@@ -4,7 +4,7 @@ export const profile = {
   name: "David Czartoryski",
   first: "David",
   last: "Czartoryski",
-  role: "Software engineer & founder",
+  role: "Software engineer, researcher & founder",
   school: "Northeastern University",
   degree: "B.S. Computer Science & Business Administration",
   concentration: "Corporate Innovation",
@@ -49,9 +49,27 @@ export type Leg = {
   bullets: string[];
   tech?: string[];
   note?: string;
+  links?: { href: string; label: string }[];
 };
 
 export const flightLog: Leg[] = [
+  {
+    id: "ai-research",
+    code: "BOS",
+    city: "Boston, MA · MGHPCC",
+    company: "Northeastern University HPC Research Lab",
+    title: "AI Infrastructure Researcher",
+    range: "Oct 2026 – Present",
+    bullets: [
+      "Develop gpubridge and a runtime GPU straggler detector and workload rebalancer, using Northeastern's Explorer cluster at the Massachusetts Green High Performance Computing Center (MGHPCC). The projects began independently and led to this research role.",
+      "Own the work across distributed communication, GPU kernels, statistical diagnosis and native Rust execution. Evaluate changes with hardware benchmarks, reference-based differential tests and fault injection, preserving numerical behavior and asynchronous resource lifetimes.",
+    ],
+    tech: ["PyTorch", "Rust", "CUDA", "ROCm", "NCCL / RCCL", "Triton", "Slurm"],
+    links: [
+      { href: "#gpubridge", label: "Research case study & results" },
+      { href: "https://github.com/DavidCzartoryski/gpubridge", label: "Public code" },
+    ],
+  },
   {
     id: "pawtograder",
     code: "BOS",
@@ -158,7 +176,7 @@ export const studio = {
   kind: "Venture studio & holding company",
   range: "2024 – Present",
   blurb:
-    "Hercules Holdings — HH — is a venture studio and holding company that my ventures operate under. Everything below is built and run inside it: a govtech fare platform, a consumer fintech app, the AI tooling behind the commerce brands, and runtime research for GPU clusters. It has had employees and interns.",
+    "Hercules Holdings — HH — is the venture studio and holding company behind my govtech fare platform, consumer fintech app, and the AI tooling for the commerce brands. It has had employees and interns. My GPU infrastructure work is now part of my Northeastern research role.",
 };
 
 export const cargo: Cargo[] = [
@@ -207,15 +225,15 @@ export const cargo: Cargo[] = [
   },
   {
     id: "straggler",
-    tag: "HH-004",
+    tag: "RESEARCH",
     name: "Runtime straggler detection",
-    sector: "AI infrastructure · GPU clusters",
+    sector: "Northeastern HPC · GPU systems",
     blurb:
       "A runtime system that finds the slow GPU, slow link, or hung rank dragging down a distributed training job, across mixed NVIDIA and AMD clusters, without ever blocking training.",
     detail: [
       "A synchronous training step only finishes when its slowest rank does, so a single slow node silently sets the pace for the entire job, and it is hard to tell which one. The tool monitors collective communication through NCCL on NVIDIA and RCCL on AMD to pinpoint the straggler while the job is still running.",
-      "In simulation it flags every injected slow GPU within 3 measurement windows with zero false positives across 2,000 noisy windows, and once calibrated to a cluster's own noise it catches a 2% slowdown, at about 0.2% of step time.",
-      "Hang detection with a flight recorder, NVML and AMD SMI telemetry that names a likely cause, an NCCL/RCCL profiler plugin in C, a Rust scoring core bit-identical to the Python reference, and batch rebalancing across vendors.",
+      "In calibrated simulations with 100-step windows, it catches 2% slowdowns under 5% timing jitter, with no false flags across 250,560 healthy rank-windows. Detector overhead was about 0.2% of a step in a separate CPU simulation.",
+      "Hang detection with a flight recorder, NVML and AMD SMI telemetry, an NCCL/RCCL profiler plugin in C, and sample-weighted batch rebalancing. The stateful Rust scorer matched the Python reference bit for bit across 3,000 seeded jobs and over 4.1 million floating-point comparisons.",
     ],
     metric: { value: "0.2%", label: "of step time, simulated" },
     tone: "violet",
@@ -241,26 +259,27 @@ export type Project = {
 export const projects: Project[] = [
   {
     id: "gpubridge",
-    name: "gpubridge",
-    kind: "Open source · GPU collective communication",
-    range: "Sep 2026 – Present",
-    status: "Public · MIT · v0.4.0-alpha",
+    name: "gpubridge + straggler detector",
+    kind: "AI infrastructure research · Mixed-vendor GPU training",
+    range: "Aug 2026 – Present",
+    status: "GPU-tested collectives · RDMA in progress",
     featured: true,
     blurb:
-      "A collective communication library that runs one distributed PyTorch training job across NVIDIA and AMD GPUs, a configuration no vendor library supports, because NCCL and RCCL communicators cannot talk to each other.",
+      "Two complementary systems: an open-source PyTorch backend that joins NVIDIA and AMD GPUs in one training job, and a runtime detector and workload rebalancer that identifies what slows that job down.",
     bullets: [
-      "Keeps each vendor on its native library (NCCL on NVIDIA, RCCL on AMD) and joins the vendor islands with a reduce-bridge-broadcast path between island leaders, on stock PyTorch over any network. It registers as a torch.distributed backend, so unchanged DDP, FSDP2 and HSDP scripts run across vendors by changing one string.",
-      "Ran an NVIDIA V100 and an AMD MI50 in one heterogeneous Slurm job on Northeastern's Explorer cluster, training with DDP and FSDP2 (FSDP2 bit for bit against a replay). Pipeline parallelism across the two vendors ran at 1.05x one V100, and fp8 bridge compression doubled data-parallel throughput on a LLaMA-style model, 4,549 to 9,523 tokens/s.",
-      "Cut a 1 GB cross-vendor all-reduce 2.7x, from 1.67 s to 0.61 s, with fp8 compression whose Triton kernels run at up to ~100% of the GPU's copy bandwidth on V100, H200 and MI50. Also built a pipelined bridge on event-ordered CUDA streams, a sharded bridge, a UCX transport with GPUDirect RDMA flush, and a multi-stream TCP transport in Rust.",
-      "Validated on six GPU models (V100, T4, L40S, A100, H200, MI50) and fixed the 5 bugs only real hardware exposed; root-caused a deadlock in PyTorch's Gloo teardown and a silent HSDP hang between torch releases. 560+ test functions, 80 merged pull requests, and CI cut from 23 minutes to 7.",
+      "Designed hierarchical collectives that keep NCCL on NVIDIA and RCCL on AMD while bridging vendor-specific GPU groups. Implemented asynchronous collectives, GPU-stream synchronization, DDP/FSDP2 integration and Triton compression kernels across separate CUDA and ROCm software stacks. Hardware coverage spans six GPU models.",
+      "Cut a 1 GB cross-vendor all-reduce 2.7x, from 1.67 s to 0.61 s, with fp8 compression on a V100 + MI50. In a separate LLaMA-style training benchmark, fp8 raised mixed data-parallel throughput from 4,549 to 9,523 tokens/s. These results used the TCP bridge.",
+      "Built hardware-aware diagnosis that separates expected GPU differences from degradation, and slow computation from communication delays when they overlap. Calibrated simulations with 100-step windows detected 2% slowdowns under 5% timing jitter, with no false flags across 250,560 healthy rank-windows. Rebalancing preserves sample-weighted gradient averaging.",
+      "Ported the stateful scoring engine to Rust and verified bit-exact numerical agreement across 3,000 seeded jobs and over 4.1 million floating-point comparisons. Differential tests, fault injection and hardware regressions check correctness across numerical, scheduling and failure boundaries.",
+      "Current work: hardening a Rust/libibverbs RDMA prototype with NVIDIA GPUDirect and AMD GPU-memory registration, NIC-counter-based fabric diagnosis, and polling policies that trade latency against CPU use. Preparing a reproducible cluster-validation package; real GPU-direct transfers and their training benefit remain hardware-validation targets.",
     ],
     stats: [
       { value: "2.7×", label: "faster 1 GB all-reduce across NVIDIA + AMD" },
-      { value: "2.1×", label: "data-parallel throughput with fp8" },
-      { value: "6", label: "GPU models validated on Explorer" },
-      { value: "560+", label: "test functions" },
+      { value: "2%", label: "slowdown detected in calibrated simulation" },
+      { value: "4.1M+", label: "bit-exact float comparisons, Rust vs Python" },
+      { value: "3,000", label: "seeded jobs in the scoring validation corpus" },
     ],
-    stack: ["PyTorch", "NCCL", "RCCL", "Triton", "CUDA", "ROCm", "C++", "Rust", "UCX", "Slurm"],
+    stack: ["PyTorch", "NCCL", "RCCL", "Triton", "CUDA", "ROCm", "C / C++", "Rust", "libibverbs", "Slurm"],
     links: [{ href: "https://github.com/DavidCzartoryski/gpubridge", label: "github.com/DavidCzartoryski/gpubridge" }],
   },
   {
@@ -355,7 +374,7 @@ export const layover = {
 export const skills = [
   { group: "Languages", items: ["Python", "TypeScript", "JavaScript", "Java", "C++", "C", "Rust", "Swift", "SQL", "Bash", "Racket", "Liquid", "HTML/CSS"] },
   { group: "Frameworks & AI", items: ["React", "Next.js", "Node.js", "Express", "FastAPI", "Django", "Angular", "SwiftUI", "React Native", "LLM APIs", "Claude tool use", "RAG"] },
-  { group: "GPU & distributed", items: ["PyTorch distributed", "NCCL", "RCCL", "Triton", "CUDA streams", "ROCm", "UCX", "Slurm"] },
+  { group: "GPU & distributed", items: ["PyTorch distributed", "NCCL", "RCCL", "Triton", "CUDA streams", "ROCm", "UCX", "RDMA / libibverbs (in development)", "Slurm"] },
   { group: "Infrastructure", items: ["Git", "Linux", "Docker", "PostgreSQL", "Supabase", "MongoDB", "Azure CLI", "GitHub Actions", "OpenTelemetry", "Prometheus", "Grafana"] },
   { group: "Networking", items: ["TCP/IP", "BGP", "VLANs", "Routing & switching", "ACLs", "Firewall policy", "DNS"] },
 ];
@@ -402,8 +421,8 @@ export const ventureDeep: Record<string, VentureDeep> = {
       {
         heading: "Fast enough to run alongside training",
         body: [
-          "A detector that slows the job down defeats its own purpose. All cross-rank exchange runs on a background thread over the job's own store, so a slow or dead rank can never block training, and the whole thing costs about 0.2% of step time.",
-          "The scoring rules are ported to Rust, bit-identical to the Python reference across 2,000 seeded jobs and more than 3 million compared values.",
+          "Cross-rank summary exchange runs on a background thread over the job's own store, so training never waits for a missing rank's summary. In a CPU simulation with 10 ms steps, the direct detector cost was about 0.2% of step time; this is not a measured overhead guarantee for GPU training.",
+          "The complete stateful scoring update runs in Rust, with one native boundary call per window. The validation corpus matched the Python reference bit for bit across 3,000 seeded jobs and over 4.1 million floating-point comparisons.",
         ],
       },
       {
@@ -416,7 +435,7 @@ export const ventureDeep: Record<string, VentureDeep> = {
       {
         heading: "Where it stands",
         body: [
-          "In simulation it flags every injected slow GPU within 3 measurement windows, with zero false positives across 2,000 noisy windows, and calibrated to a cluster's own noise it catches a 2% slowdown with zero false flags in 250,560 healthy rank-windows. 320+ test functions, and the kit for runs on Northeastern's Explorer GPU cluster is built.",
+          "In calibrated simulations with 100-step windows, it detected 2% slowdowns under 5% timing jitter, with no false flags across 250,560 healthy rank-windows. The next validation stage exercises the integrated Rust RDMA transport and NIC diagnosis on allocated hardware; mock and CPU results are kept separate from real GPU measurements.",
         ],
       },
       {
@@ -532,17 +551,17 @@ export const ventureDeep: Record<string, VentureDeep> = {
  * lives here.
  */
 export const recruiter = {
-  headline: "I build distributed systems and AI products, and the companies around them.",
-  lede: "Software engineer and founder studying Computer Science and Business Administration at Northeastern, graduating December 2027. Lately: an open-source library that trains one PyTorch job across NVIDIA and AMD GPUs, a runtime detector for the slow GPU in a training cluster, and agents built on Claude. Looking for a new-grad software engineering role.",
+  headline: "I build AI infrastructure, distributed systems, and the products around them.",
+  lede: "Software engineer, AI infrastructure researcher at Northeastern University's HPC Research Lab, and founder. I build cross-vendor GPU training and runtime-diagnosis systems using Explorer at MGHPCC, alongside shipped products and AI agents. Studying Computer Science and Business Administration, graduating December 2027; looking for a new-grad software engineering role.",
   /** Headline numbers; `href` jumps to the role, venture or project they come from. */
   impact: [
     { value: "2.7×", label: "faster 1 GB all-reduce across NVIDIA and AMD GPUs", source: "gpubridge", href: "#gpubridge" },
+    { value: "4.1M+", label: "bit-exact floating-point comparisons, Rust vs Python", source: "AI infrastructure research", href: "#ai-research" },
     { value: "120 ms", label: "update latency, down from a 5-second polling loop", source: "Mosaiq", href: "#mosaiq" },
     { value: "70%", label: "off deployment time at a $42B+ AUM growth equity firm", source: "Summit Partners", href: "#summit" },
     { value: "5,000+", label: "weekly active users on the platform I help run", source: "Pawtograder", href: "#pawtograder" },
     { value: "22,000+", label: "riders under a conditional fare contract", source: "EternalTap", href: "#eternaltap" },
     { value: "$180K", label: "revenue driven by an autonomous storefront builder", source: "Hercules Holdings", href: "#engine" },
-    { value: "~280", label: "production deploys in six weeks, built solo", source: "CrediMax", href: "#credimax" },
     { value: "1st", label: "of 250+ at the 2026 Microsoft × Northeastern AI Hackathon", source: "HuskyClaw", href: "#huskyclaw" },
   ],
   /**
@@ -575,8 +594,11 @@ export const recruiter = {
     "$180K in revenue",
     "from days to 6 minutes",
     "NCCL on NVIDIA and RCCL on AMD",
-    "zero false positives across 2,000 noisy windows",
-    "catches a 2% slowdown",
+    "250,560 healthy rank-windows",
+    "2% slowdowns under 5% timing jitter",
+    "3,000 seeded jobs",
+    "4.1 million floating-point comparisons",
+    "hardware-validation targets",
     "changing one string",
     "1.05x one V100",
     "4,549 to 9,523 tokens/s",

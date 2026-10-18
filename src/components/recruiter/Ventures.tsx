@@ -2,9 +2,11 @@ import { cargo, studio, ventureDeep } from "@/data/site";
 import { Breakdown, Bullets, Chips, Label, SectionHead } from "./bits";
 
 export default function Ventures() {
+  // The detector is now grouped with the Northeastern research case study.
+  const ventures = cargo.filter((c) => c.id !== "straggler");
   return (
     <section id="ventures" aria-labelledby="ventures-h" className="scroll-mt-24 pt-24">
-      <SectionHead id="ventures" n="03" title="Ventures" aside={`${cargo.length} under ${studio.short}`} />
+      <SectionHead id="ventures" n="03" title="Ventures" aside={`${ventures.length} under ${studio.short}`} />
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h3 className="text-[1.35rem] font-semibold leading-tight tracking-[-0.025em]">{studio.name} LLC</h3>
@@ -16,7 +18,7 @@ export default function Ventures() {
       <p className="mt-4 max-w-3xl text-[15px] leading-relaxed text-cv-muted">{studio.blurb}</p>
 
       <ul className="mt-8 space-y-4">
-        {cargo.map((c) => {
+        {ventures.map((c) => {
           const deep = ventureDeep[c.id];
           return (
             <li key={c.id} id={c.id} className="scroll-mt-24 rounded-xl p-6 ring-1 ring-cv-line md:p-7">

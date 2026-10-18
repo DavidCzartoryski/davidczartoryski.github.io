@@ -38,6 +38,15 @@ export default function Experience() {
                     <Chips items={leg.tech} />
                   </div>
                 )}
+                {leg.links && (
+                  <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
+                    {leg.links.map((link) => (
+                      <a key={link.href} href={link.href} className="text-[14px] font-medium text-cv-accent underline-offset-4 hover:underline">
+                        {link.label} <span aria-hidden>↗</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </article>
             </li>
           );
