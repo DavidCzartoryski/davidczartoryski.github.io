@@ -50,11 +50,14 @@ export type Leg = {
   tech?: string[];
   note?: string;
   links?: { href: string; label: string }[];
+  /** Square logo in public/logos, shown on the recruiter view's timeline. */
+  logo?: string;
 };
 
 export const flightLog: Leg[] = [
   {
     id: "ai-research",
+    logo: "/logos/northeastern.png",
     code: "BOS",
     city: "Boston, MA · MGHPCC",
     company: "Northeastern University HPC Research Lab",
@@ -72,6 +75,7 @@ export const flightLog: Leg[] = [
   },
   {
     id: "pawtograder",
+    logo: "/logos/pawtograder.png",
     code: "BOS",
     city: "Boston, MA",
     company: "Pawtograder",
@@ -89,6 +93,7 @@ export const flightLog: Leg[] = [
   },
   {
     id: "mosaiq",
+    logo: "/logos/mosaiq.png",
     code: "BOS",
     city: "Boston, MA",
     company: "Mosaiq Software",
@@ -102,6 +107,7 @@ export const flightLog: Leg[] = [
   },
   {
     id: "summit",
+    logo: "/logos/summit.png",
     code: "SFO",
     city: "Menlo Park, CA",
     company: "Summit Partners",
@@ -118,6 +124,7 @@ export const flightLog: Leg[] = [
   },
   {
     id: "whalley",
+    logo: "/logos/whalley.png",
     code: "SWK",
     city: "Southwick, MA",
     company: "Whalley Computer Associates",
@@ -134,6 +141,7 @@ export const flightLog: Leg[] = [
 
 export const education = {
   school: "Northeastern University",
+  logo: "/logos/northeastern.png",
   city: "Boston, MA",
   degree: "B.S. Computer Science & Business Administration",
   concentration: "Concentration in Corporate Innovation",

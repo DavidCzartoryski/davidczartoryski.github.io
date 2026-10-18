@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import { SITE_URL, profile } from "@/data/site";
 import Background from "@/components/recruiter/Background";
 import Contact, { Footer } from "@/components/recruiter/Contact";
+import ExpandForPrint from "@/components/recruiter/ExpandForPrint";
 import Experience from "@/components/recruiter/Experience";
-import Overview from "@/components/recruiter/Overview";
+import Floating from "@/components/recruiter/Floating";
+import Header from "@/components/recruiter/Header";
+import Hero from "@/components/recruiter/Hero";
 import Projects from "@/components/recruiter/Projects";
-import Rail from "@/components/recruiter/Rail";
-import TopBar from "@/components/recruiter/TopBar";
+import Resume from "@/components/recruiter/Resume";
+import Stack from "@/components/recruiter/Stack";
+import Starfield from "@/components/recruiter/Starfield";
 import Ventures from "@/components/recruiter/Ventures";
+
+// Scoped to this page: the passport keeps its own type.
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 const TITLE = `${profile.name} · Résumé`;
 const DESCRIPTION =
@@ -42,29 +51,32 @@ export const metadata: Metadata = {
 };
 
 /**
- * The recruiter view: the résumé on one quiet page. Rendered entirely on the
- * server from src/data/site.ts (the section index and copy-email buttons are
- * the only client code); it sits outside the (experience) route group, so the
- * song, the intro and the WebGL layer never load here.
+ * The recruiter view: the résumé on one page, at night. Rendered on the server
+ * from src/data/site.ts; the client code is the starfield, the section index,
+ * the floating buttons and the copy-email buttons. It sits outside the
+ * (experience) route group, so the song, the intro and the WebGL layer never
+ * load here.
  */
 export default function RecruiterPage() {
   return (
-    <div id="top" className="recruiter min-h-screen">
-      <TopBar />
-      <div className="mx-auto max-w-[1360px] lg:flex">
-        <Rail />
-        <main className="min-w-0 flex-1">
-          <div className="mx-auto max-w-[880px] px-6 pt-12 lg:px-12 lg:pt-16 xl:px-16">
-            <Overview />
-            <Experience />
-            <Ventures />
-            <Projects />
-            <Background />
-            <Contact />
-            <Footer />
-          </div>
-        </main>
+    <div id="top" className={`recruiter ${geist.variable} ${geistMono.variable} relative min-h-screen`}>
+      <Starfield />
+      <Header />
+      <main className="relative z-10 mx-auto max-w-[1152px] px-6 md:px-10">
+        <Hero />
+        <Experience />
+        <Ventures />
+        <Projects />
+        <Stack />
+        <Background />
+        <Resume />
+        <Contact />
+      </main>
+      <div className="relative z-10">
+        <Footer />
       </div>
+      <Floating resume={profile.resume} />
+      <ExpandForPrint />
     </div>
   );
 }

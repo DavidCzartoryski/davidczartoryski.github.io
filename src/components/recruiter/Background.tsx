@@ -1,75 +1,54 @@
-import { Fragment } from "react";
 import Link from "next/link";
-import { education, layover, recruiter, skills } from "@/data/site";
-import { Bullets, Label, SectionHead } from "./bits";
+import { education, layover, recruiter } from "@/data/site";
+import { Bullets, Caps, Dot, SectionHead } from "./bits";
+import { Logo } from "./Experience";
+import { Pin } from "./icons";
+import Plane from "../Plane";
 
-/** Education, skills, and the rest of the person. */
+/** Education and the rest of the person. */
 export default function Background() {
   const beyond = [...recruiter.beyond, { k: "Interests", v: layover.extras.join(" · ") }];
   return (
-    <section id="education" aria-labelledby="education-h" className="scroll-mt-24 pt-24">
-      <SectionHead id="education" n="05" title="Education & skills" />
+    <section id="education" aria-labelledby="education-h" className="scroll-mt-28 pt-32 md:pt-40">
+      <SectionHead id="education" n="06" kicker="Education" title="Northeastern, and off the clock" />
 
-      <div className="grid gap-x-12 gap-y-14 xl:grid-cols-[1.1fr_1fr]">
-        <div>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-            <h3 className="text-[1.35rem] font-semibold leading-tight tracking-[-0.025em]">{education.school}</h3>
-            <div className="font-mono text-[12px] text-cv-fg">{education.range}</div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <article className="rounded-2xl border border-cv-line bg-cv-card p-6 md:p-8">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Caps className="text-[10.5px] text-cv-fg">{education.range}</Caps>
+            <span aria-hidden className="h-px w-8 bg-cv-line-2" />
+            <Caps className="flex items-center gap-1.5 text-[10.5px] text-cv-faint">
+              <Pin size={11} /> {education.city}
+            </Caps>
           </div>
-          <div className="mt-0.5 text-[15px] font-medium text-cv-accent">{education.degree}</div>
-          <div className="mt-0.5 text-[14px] text-cv-muted">
-            {education.concentration} · {education.city}
+          <div className="mt-5 flex items-center gap-4">
+            <Logo src={education.logo} fallback="NU" />
+            <h3 className="text-[1.6rem] font-light leading-tight tracking-[-0.025em]">
+              <Dot>{education.school}</Dot>
+            </h3>
           </div>
-          <Bullets items={education.bullets} className="mt-5 text-[14.5px] text-cv-muted" />
-        </div>
+          <div className="mt-1.5 text-[14.5px] text-cv-fg/85">{education.degree}</div>
+          <div className="mt-0.5 text-[14px] text-cv-muted">{education.concentration}</div>
+          <Bullets items={education.bullets} className="mt-6 text-[14px]" />
+        </article>
 
-        <div id="skills" className="scroll-mt-24">
-          <h3 className="text-[1.35rem] font-semibold leading-tight tracking-[-0.025em]">Skills</h3>
-          <dl className="mt-5 space-y-5">
-            {skills.map((g) => (
-              <div key={g.group}>
-                <dt>
-                  <Label className="text-cv-faint">{g.group}</Label>
-                </dt>
-                <dd className="mt-2 text-[14.5px] leading-relaxed text-cv-fg">
-                  {g.items.map((s, i) => (
-                    <Fragment key={s}>
-                      <span className="whitespace-nowrap">{s}</span>
-                      {i < g.items.length - 1 && (
-                        <>
-                          {" "}
-                          <span aria-hidden className="text-cv-line-2">
-                            ·
-                          </span>{" "}
-                        </>
-                      )}
-                    </Fragment>
-                  ))}
-                </dd>
+        <div className="flex flex-col rounded-2xl border border-cv-line bg-cv-card p-6 md:p-8">
+          <Caps className="text-[10.5px] text-cv-faint">Off the clock</Caps>
+          <dl className="mt-3 divide-y divide-cv-line">
+            {beyond.map((b) => (
+              <div key={b.k} className="py-4 last:pb-0">
+                <dt className="text-[13px] font-medium text-cv-fg">{b.k}</dt>
+                <dd className="mt-1 text-[14px] leading-relaxed text-cv-muted">{b.v}</dd>
               </div>
             ))}
           </dl>
+          <Link
+            href="/"
+            className="no-print mt-auto inline-flex items-center gap-2 pt-7 text-[13.5px] text-cv-accent underline-offset-4 hover:underline"
+          >
+            <Plane size={12} /> The stamps, the mat and the photos are in the full site
+          </Link>
         </div>
-      </div>
-
-      <div className="mt-16">
-        <h3 className="text-[1.35rem] font-semibold leading-tight tracking-[-0.025em]">Beyond the résumé</h3>
-        <dl className="mt-5 grid gap-px overflow-hidden rounded-xl bg-cv-line ring-1 ring-cv-line sm:grid-cols-2">
-          {beyond.map((b) => (
-            <div key={b.k} className="bg-cv-bg px-5 py-4">
-              <dt>
-                <Label className="text-cv-faint">{b.k}</Label>
-              </dt>
-              <dd className="mt-1.5 text-[14.5px] leading-relaxed text-cv-fg">{b.v}</dd>
-            </div>
-          ))}
-        </dl>
-        <Link
-          href="/"
-          className="no-print mt-4 inline-flex items-center gap-1.5 text-[14px] font-medium text-cv-accent underline-offset-4 hover:underline"
-        >
-          The stamps, the mat and the photos are in the full site →
-        </Link>
       </div>
     </section>
   );
