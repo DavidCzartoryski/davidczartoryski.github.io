@@ -18,7 +18,9 @@ npm run build      # static export to ./out
 src/app/                 root layout (fonts, metadata), globals.css (tokens, keyframes)
   (experience)/          the full site: layout (song, intro, 3D layer, nav) and page (section order)
   recruiter/             /recruiter, the no-sound résumé view
+  Artemis/               /Artemis, the venture page for the straggler detector and GPUBridge
 src/data/site.ts         ALL copy: profile, flight log, ventures, projects, wrestling, layover, skills, nav, recruiter view
+src/data/artemis.ts      copy for /Artemis, including every result and how it was measured
 src/data/countries.json  the 23 visited countries (slug, ISO, flag, region, atlas id)
 src/data/*.generated.json  built by scripts, do not edit by hand
 src/lib/audio-cues.ts    where the song starts and where the buzzer lands
@@ -29,6 +31,7 @@ src/components/
   WorldMap.tsx, Stamp.tsx  outlines rendered from the generated geo data
   sections/              Hero, Passport, FlightLog, Cargo, Mat, Layover, Arrivals
   recruiter/             the recruiter view's sections, all server-rendered
+  artemis/               the /Artemis sections; Lanes.tsx is the hero's rank strip
   three/                 "Night flight", the optional WebGL layer (see below)
 scripts/
   build-geo.mjs          world map + per-country stamp outlines from world-atlas
@@ -65,6 +68,30 @@ colours are the `--cv-*` variables at the bottom of `globals.css`, used as
 nowhere else. A sticky header carries the section index; roles, ventures and
 projects show their first lines and fold the rest behind "More". Stack icons
 come from `simple-icons`, mapped by skill name in `recruiter/icons.tsx`.
+
+### Artemis
+
+`/Artemis/` is the page for the GPU venture: the runtime straggler detector
+and GPUBridge, written for YC, investors and design partners. Like the
+recruiter view it sits outside `(experience)` and has its own look: flight-test
+paper (bone, ink, hairlines, a dot grid) with one signal red that only ever
+marks the straggler. Archivo, set wide, for type and Martian Mono for
+readouts, loaded on that page only. Its colours are the `--ar-*` variables at
+the bottom of `globals.css`.
+
+The hero strip (`artemis/Lanes.tsx`) is drawn on the server from a seeded
+loop of eight ranks, so it is the same for every visitor, and slid by CSS;
+reduced motion gets the still frame. The only client code is the cost
+calculator and the copy-email button.
+
+All copy is in `src/data/artemis.ts`. Each evidence row carries a `kind`
+(`gpu`, `sim`, `cpu`, `wip`) and an optional `early` flag for small samples,
+shown as badges, so a simulated number never reads as a hardware one. When
+the project's benchmark or validation docs change, change the row with them.
+Founder photos are in `public/team/`. A `public/artemis/` folder would land in the same directory as the route on a case-insensitive disk.
+
+GitHub Pages paths are case-sensitive, so `/artemis` would miss; the 404
+page sends any casing of it to `/Artemis/`.
 
 ### The intro and the song
 

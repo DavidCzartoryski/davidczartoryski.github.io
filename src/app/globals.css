@@ -72,6 +72,23 @@
   --font-cv: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
   --font-cv-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
+  /* Artemis palette; values live with the .artemis rules at the bottom. */
+  --color-ar-bg: var(--ar-bg);
+  --color-ar-card: var(--ar-card);
+  --color-ar-ink: var(--ar-ink);
+  --color-ar-muted: var(--ar-muted);
+  --color-ar-faint: var(--ar-faint);
+  --color-ar-line: var(--ar-line);
+  --color-ar-line-2: var(--ar-line-2);
+  --color-ar-signal: var(--ar-signal);
+  --color-ar-signal-ink: var(--ar-signal-ink);
+  --color-ar-night: var(--ar-night);
+  --color-ar-night-fg: var(--ar-night-fg);
+  --color-ar-night-muted: var(--ar-night-muted);
+  --color-ar-night-faint: var(--ar-night-faint);
+  --color-ar-night-line: var(--ar-night-line);
+  --color-ar-night-signal: var(--ar-night-signal);
+
   --font-display: var(--font-bodoni), "Didot", "Bodoni MT", Georgia, serif;
   --font-sans: var(--font-instrument), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-plex-mono), "SF Mono", Menlo, monospace;
@@ -394,5 +411,145 @@ html:has(.recruiter) {
   }
   .recruiter :is(li, article) {
     break-inside: avoid;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Artemis (/Artemis). Flight-test paper: bone, ink and hairlines,
+   with one signal red that means only "the straggler". Archivo set
+   wide for display and body, Martian Mono for anything a
+   telemetry readout would print.
+   ────────────────────────────────────────────────────────────── */
+.artemis {
+  --ar-bg: #ece9e1;
+  --ar-card: #f6f4ef;
+  --ar-ink: #131418;
+  --ar-muted: #45464c;
+  --ar-faint: #5e5f64;
+  --ar-line: rgb(19 20 24 / 0.12);
+  --ar-line-2: rgb(19 20 24 / 0.22);
+  /* Graphics and large type; --ar-signal-ink is the text-size version (5:1). */
+  --ar-signal: #d9411f;
+  --ar-signal-ink: #b5321a;
+  --ar-night: #111215;
+  --ar-night-fg: #ece9e1;
+  --ar-night-muted: #a9a7a0;
+  --ar-night-faint: #8e8c86;
+  --ar-night-line: rgb(236 233 225 / 0.12);
+  --ar-night-signal: #ff6a45;
+  font-family: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--ar-bg);
+  background-image: radial-gradient(rgb(19 20 24 / 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ar-ink);
+}
+html:has(.artemis),
+html:has(.artemis) body {
+  background: #ece9e1;
+  color-scheme: light;
+}
+html:has(.artemis) {
+  scroll-padding-top: 5rem;
+}
+.artemis ::selection {
+  background: var(--ar-ink);
+  color: var(--ar-bg);
+}
+.artemis :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.ar-display {
+  font-stretch: 116%;
+  font-weight: 620;
+  letter-spacing: -0.035em;
+}
+.ar-wide {
+  font-stretch: 125%;
+}
+.ar-mono {
+  font-family: var(--font-martian), ui-monospace, "SF Mono", Menlo, monospace;
+  font-stretch: 87.5%;
+}
+.ar-hatch {
+  background: repeating-linear-gradient(45deg, rgb(19 20 24 / 0.3) 0 1.2px, transparent 1.2px 3.5px);
+}
+.ar-fade-x {
+  mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+}
+@keyframes ar-scroll {
+  to { transform: translateX(calc(-1 * var(--ar-loop))); }
+}
+.ar-lanes {
+  animation: ar-scroll var(--ar-loop-s) linear infinite;
+  will-change: transform;
+}
+@keyframes ar-pulse {
+  50% { opacity: 0.25; }
+}
+.ar-pulse {
+  animation: ar-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ar-rise {
+  from { opacity: 0; transform: translateY(14px); }
+}
+.ar-rise {
+  animation: ar-rise 0.9s var(--ease-out) both;
+  animation-delay: var(--ar-d, 0ms);
+}
+@keyframes ar-type {
+  from { opacity: 0; }
+}
+.ar-type {
+  animation: ar-type 0.35s steps(2) both;
+  animation-delay: calc(1100ms + var(--ar-i, 0) * 150ms);
+}
+@keyframes ar-flow {
+  to { stroke-dashoffset: -40; }
+}
+.ar-flow {
+  animation: ar-flow 1.2s linear infinite;
+}
+.ar-range {
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.ar-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--ar-ink) var(--p), rgb(19 20 24 / 0.16) var(--p));
+}
+.ar-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7.5px;
+  border-radius: 50%;
+  border: 2px solid var(--ar-ink);
+  background: var(--ar-card);
+}
+.ar-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgb(19 20 24 / 0.16);
+}
+.ar-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ar-ink);
+}
+.ar-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ar-ink);
+  background: var(--ar-card);
+}
+@media (prefers-reduced-motion: reduce) {
+  .artemis :is(.ar-lanes, .ar-pulse, .ar-rise, .ar-type, .ar-flow) {
+    animation: none;
   }
 }
