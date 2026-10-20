@@ -9,7 +9,7 @@ export default function Founders() {
       <Container>
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <Eyebrow n="06" className="text-ar-faint">
+            <Eyebrow n="07" className="text-ar-faint">
               Team
             </Eyebrow>
             <h2 id="founders-title" className="ar-display mt-6 text-[clamp(2.3rem,4.6vw,4rem)] leading-[0.97] text-ar-ink">

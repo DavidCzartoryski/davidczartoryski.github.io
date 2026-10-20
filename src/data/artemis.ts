@@ -71,16 +71,28 @@ export const artemis = {
       {
         n: "03",
         title: "Explain",
-        body: "Each finding carries its cost in milliseconds per step and a likely cause from GPU telemetry, such as thermal throttling or a clock drop. A hang comes with a flight recorder that names the stuck rank and every rank's collective phase.",
+        body: "Each finding carries its cost in milliseconds per step and a likely cause from GPU telemetry, such as thermal throttling or a clock drop. It keeps what was observed apart from what it might mean, and missing telemetry shows up as missing, never as healthy. A hang comes with a flight recorder that names the stuck rank and every rank's collective phase.",
       },
       {
         n: "04",
-        title: "Rebalance",
-        body: "Measured imbalance becomes per-vendor batch sizes. Gradient averaging stays sample-weighted, so the update is the one uniform hardware would compute. In simulation this cut step time 5.5% with AMD 20% slower. A gain on real hardware isn't shown yet.",
+        title: "Act",
+        body: "Measured imbalance becomes a work change, such as per-vendor batch sizes. The global batch and the sample weighting of the gradients stay the same, so the run computes the update it would have anyway. On one V100 node with a GPU slowed on purpose, applied redistribution raised throughput about 35%.",
       },
     ],
+    modes: [
+      { title: "Observe", body: "Detect and report. Training is never touched.", status: "Built" },
+      { title: "Recommend", body: "Propose a change, with the evidence behind it and the limits it has to respect.", status: "Built" },
+      {
+        title: "Automatic",
+        body: "Apply only the changes the job and site policy allow, then measure what happened.",
+        status: "Opt-in, validating",
+      },
+    ],
+    chain: ["Finding", "Policy check", "Plan", "Ranks agree at a safe boundary", "Training commits", "Outcome reported", "Hold, adjust or revert"],
+    principle:
+      "A change counts only when it was applied correctly and the measurements after it show the improvement. An acknowledged command proves nothing on its own.",
     runtime:
-      "Training never waits on Artemis. Ranks exchange summaries on a background thread, and the scoring update runs in Rust with one native call per window. On a V100 node it made no measurable difference to step time, at a cost of about 0.83 of a CPU core and 94 MiB of memory per rank. A Prometheus exporter and a Grafana dashboard ship with it.",
+      "Training never waits on Artemis. Ranks exchange summaries on a background thread, and the scoring update runs in Rust with one native call per window. On a V100 node it made no measurable difference to step time. It isn't free: the profiler costs about 0.83 of a CPU core and 96 MiB of memory per rank today, and reports count startup and shutdown as well as the training step. The target is under 1% of step time, with an uncertainty bound to back it, and a smaller footprint. A Prometheus exporter and a Grafana dashboard ship with it.",
   },
 
   bridge: {
@@ -89,6 +101,7 @@ export const artemis = {
     body: [
       "A cluster with both vendors usually runs them as two separate clusters. NCCL only talks to NVIDIA and RCCL only talks to AMD, so a single job can't span both.",
       "GPUBridge is a PyTorch distributed backend that keeps each vendor on its own library and bridges the two groups. It handles asynchronous collectives, stream synchronization on CUDA and ROCm, DDP and FSDP2. Switching a script over is one import and one string.",
+      "More GPUs aren't automatically better. A mixed job is worth running only if it beats the best single-vendor part of the same allocation, so that's the comparison GPUBridge's claims are held to. The 1.10× below is against the faster GPU on its own.",
     ],
     snippet: [
       { code: "import gpubridge", note: "registers the backend" },
@@ -106,7 +119,17 @@ export const artemis = {
       { value: "1.10×", label: "faster training on a V100 plus an MI50 than on the V100 alone, pipeline parallel" },
     ],
     status:
-      "These numbers use a TCP link between the vendors of about 1.2 GB/s, and that link is the bottleneck today. The RDMA transport, written in Rust on libibverbs, already runs over InfiniBand on a single host. Cross-node runs and GPUDirect are next.",
+      "These numbers use a TCP link between the vendors of about 1.2 GB/s, and that link is the bottleneck today.",
+    channels: [
+      { name: "Training data", owner: "GPUBridge", body: "Carries the bridge payloads between vendor groups." },
+      {
+        name: "Telemetry and control",
+        owner: "Artemis",
+        body: "Carries node measurements to the coordinator and commands back. It never carries model tensors.",
+      },
+    ],
+    channelsNote:
+      "Two RDMA channels, kept apart. Both are Rust on libibverbs, and both run over InfiniBand on a single host today. Proving each one across machines, and GPUDirect for the training data, is next.",
   },
 
   evidence: {
@@ -121,7 +144,7 @@ export const artemis = {
       },
       {
         result: "No measurable change in step time from running the detector, +0.18% median",
-        setup: "95% CI −0.17% to +0.53%, small DDP model with 11 ms steps. Costs 0.83 of a CPU core and 94 MiB per rank",
+        setup: "95% CI −0.17% to +0.53%, small DDP model with 11 ms steps. Costs 0.83 of a CPU core and 96 MiB per rank",
         kind: "gpu",
       },
       {
@@ -134,6 +157,12 @@ export const artemis = {
         result: "Full chain over native libibverbs on InfiniBand flagged the right rank at +5%, +10% and +30%",
         setup: "Single-host loopback. 7 of 7 healthy runs raised no flag",
         kind: "gpu",
+      },
+      {
+        result: "Applied redistribution raised throughput about 35% after one GPU was slowed on purpose",
+        setup: "One 4× V100 node, synthetic workload, 3 matched pairs with the action off and on. Not a production claim",
+        kind: "gpu",
+        early: true,
       },
       {
         result: "2.7× faster 1 GB cross-vendor all-reduce, 1.67 s to 0.61 s",
@@ -153,7 +182,7 @@ export const artemis = {
       },
       {
         result: "Rebalancing cut step time 5.5% with AMD 20% slower",
-        setup: "Simulated per-vendor batch sizes. No gain shown yet on real hardware",
+        setup: "Simulated per-vendor batch sizes, exact gradient weighting",
         kind: "sim",
       },
       {
@@ -167,6 +196,39 @@ export const artemis = {
         kind: "wip",
       },
     ],
+    standard: {
+      heading: "The comparison behind each kind of claim",
+      rows: [
+        ["Mixed hardware helps", "The best single-vendor subset of the same allocation"],
+        ["Rebalancing recovers time", "The same hardware and work, with the action off and on"],
+        ["RDMA helps", "Matched transport runs, with proof of the path actually used"],
+        ["Compression helps", "Uncompressed runs, counting numerical error and kernel cost"],
+        ["Rust is cheaper", "The same workload on each implementation"],
+      ],
+    },
+  },
+
+  fit: {
+    heading: "Fits the cluster you already run.",
+    body: "Artemis works inside the job your scheduler grants. It doesn't take over the cluster.",
+    does: [
+      "The scheduler keeps allocation and job membership. Artemis adds no GPUs and never changes a job's world size on its own.",
+      "GPUBridge uses only the resources granted to the job.",
+      "The site controls installation, approved versions, privileges and rollout.",
+      "Model weights and datasets never leave the job for monitoring. The detector sends timing summaries.",
+      "Findings feed the monitoring you already run, starting with Prometheus and Grafana.",
+    ],
+    isNot: {
+      heading: "What it isn't",
+      items: [
+        "A replacement for your scheduler",
+        "A promise that every mixed-vendor combination is faster or cheaper",
+        "A layer that gives up native NCCL and RCCL inside each vendor group",
+        "Zero-overhead monitoring",
+        "A dashboard of counters with root-cause labels the evidence can't support",
+        "Proof of GPUDirect RDMA just because a NIC supports verbs",
+      ],
+    },
   },
 
   audience: {
@@ -184,6 +246,10 @@ export const artemis = {
         title: "Mixed fleets",
         body: "NVIDIA next to AMD, or three GPU generations in one cluster. Artemis tells a normal hardware difference from a fault, and GPUBridge lets one job use all of it.",
       },
+      {
+        title: "HPC centers",
+        body: "Give researchers a supported way to use heterogeneous allocations, and tell them which ones help their workload. When a job falls behind, they get the evidence instead of a pile of logs.",
+      },
     ],
     whyNow:
       "The largest training teams built straggler and hang tooling for themselves, because at their scale they had to. Clusters everywhere else are getting bigger and more mixed, and most of them still find the slow GPU after the run is paid for. Artemis is that tooling for everyone else, across both vendors.",
@@ -197,26 +263,31 @@ export const artemis = {
         items: [
           "Straggler and hang detection with a flight recorder",
           "Per-vendor scoring with hardware classes",
-          "Sample-weighted batch rebalancing",
+          "Observe and recommend modes, with sample-weighted redistribution",
           "Rust scoring core, bit-exact against the Python reference",
           "GPUBridge with DDP, FSDP2 and fp8 compression",
+          "Native libibverbs paths for both channels on one host",
         ],
       },
       {
         label: "Validating now",
         items: [
-          "Detection on multi-GPU V100 nodes and mixed V100 and MI50 jobs",
-          "Default thresholds tuned on real GPU noise",
+          "Default thresholds that pass long healthy runs without a tuned policy",
+          "Automatic control, tested on one node and off by default",
+          "Mixed NVIDIA and AMD correctness across physical machines",
+          "Cross-node RDMA for training data and for detector control",
           "AMD telemetry and the RCCL side of the profiler",
-          "RDMA on InfiniBand, cross-node and with GPUDirect",
+          "Under 1% of step time, with a smaller CPU and memory footprint",
         ],
       },
       {
         label: "Next",
         items: [
-          "Design partners running multi-node training",
+          "A first pilot at an HPC center, on approved systems and real research workloads",
+          "A published support matrix of what's validated",
+          "Operator views: job summary, incident timeline and post-run report",
+          "Long soak and fault testing before a supported release",
           "Current-generation NVIDIA and AMD hardware",
-          "A fleet view across jobs and nodes",
         ],
       },
     ],
@@ -279,6 +350,16 @@ export const artemis = {
     heading: "Running multi-node training?",
     mark: "Let's find your slow GPU.",
     body: "Artemis is taking a small number of design partners: teams with multi-node jobs on NVIDIA, AMD or both. Investors can write to the same address.",
+    pilot: {
+      heading: "A pilot includes",
+      items: [
+        "Qualifying your hardware and software combinations",
+        "Installation into your existing jobs, with no scheduler changes",
+        "A support matrix that says what's validated and what isn't",
+        "Reports that tie every claim to the runs behind it",
+        "Release maintenance and help investigating incidents",
+      ],
+    },
   },
 } as const;
 

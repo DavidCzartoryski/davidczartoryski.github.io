@@ -13,7 +13,20 @@ export default function Contact() {
         <h2 id="contact-title" className="ar-display max-w-[980px] text-[clamp(2.4rem,6vw,5.4rem)] leading-[0.95]">
           {contact.heading} <span className="text-ar-night-signal">{contact.mark}</span>
         </h2>
-        <p className="mt-8 max-w-[560px] text-[17px] leading-[1.65] text-ar-night-muted">{contact.body}</p>
+        <div className="mt-8 grid gap-10 lg:grid-cols-12">
+          <p className="max-w-[560px] text-[17px] leading-[1.65] text-ar-night-muted lg:col-span-6">{contact.body}</p>
+          <div className="lg:col-span-5 lg:col-start-8">
+            <p className="ar-mono text-[10.5px] uppercase tracking-[0.12em] text-ar-night-faint">{contact.pilot.heading}</p>
+            <ul className="mt-4 space-y-2.5">
+              {contact.pilot.items.map((item) => (
+                <li key={item} className="flex gap-3 text-[15px] leading-snug text-ar-night-muted">
+                  <span aria-hidden="true" className="mt-[9px] h-px w-3 shrink-0 bg-ar-night-fg/50" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
         <div className="mt-10 flex flex-wrap gap-3">
           <a
             href={mailto(`${artemis.name}: design partner`)}

@@ -5,6 +5,7 @@ import { artemis } from "@/data/artemis";
 import Bridge from "@/components/artemis/Bridge";
 import Contact, { Footer } from "@/components/artemis/Contact";
 import Evidence from "@/components/artemis/Evidence";
+import Fit from "@/components/artemis/Fit";
 import Founders from "@/components/artemis/Founders";
 import Header from "@/components/artemis/Header";
 import Hero from "@/components/artemis/Hero";
@@ -55,6 +56,7 @@ export default function ArtemisPage() {
         <Product />
         <Bridge />
         <Evidence />
+        <Fit />
         <Market />
         <Founders />
         <Contact />

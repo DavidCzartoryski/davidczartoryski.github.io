@@ -148,6 +148,18 @@ export default function Bridge() {
             <p className="mt-10 border-l-2 border-ar-night-fg/40 pl-4 text-[14.5px] leading-[1.65] text-ar-night-muted">
               {bridge.status}
             </p>
+            <div className="mt-10 border border-ar-night-line">
+              <ul className="grid divide-y divide-ar-night-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                {bridge.channels.map((c) => (
+                  <li key={c.name} className="p-5">
+                    <p className="ar-mono text-[10.5px] uppercase tracking-[0.12em] text-ar-night-faint">{c.owner}</p>
+                    <p className="mt-2 text-[16px] font-semibold">{c.name}</p>
+                    <p className="mt-1.5 text-[14px] leading-snug text-ar-night-muted">{c.body}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="border-t border-ar-night-line p-5 text-[14px] leading-[1.6] text-ar-night-muted">{bridge.channelsNote}</p>
+            </div>
           </div>
         </div>
       </Container>

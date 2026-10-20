@@ -51,6 +51,23 @@ export default function Evidence() {
             ))}
           </ul>
         </div>
+
+        <div className="mt-16 grid gap-6 lg:grid-cols-12 lg:gap-10">
+          <h3 className="ar-display text-[clamp(1.4rem,2.2vw,1.9rem)] leading-tight text-ar-ink lg:col-span-4">
+            {evidence.standard.heading}
+          </h3>
+          <dl className="border-t border-ar-ink lg:col-span-8">
+            {evidence.standard.rows.map(([claim, against]) => (
+              <div key={claim} className="grid gap-1 border-b border-ar-line py-4 sm:grid-cols-[220px_1fr] sm:gap-6">
+                <dt className="text-[15px] font-medium text-ar-ink">{claim}</dt>
+                <dd className="text-[15px] leading-snug text-ar-muted">
+                  <span className="ar-mono mr-2 text-[10.5px] uppercase tracking-[0.12em] text-ar-faint">vs</span>
+                  {against}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </Container>
     </section>
   );

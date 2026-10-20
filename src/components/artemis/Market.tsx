@@ -14,13 +14,13 @@ export default function Market() {
   return (
     <section aria-labelledby="audience-title" className="border-t border-ar-line py-20 md:py-28">
       <Container>
-        <Eyebrow n="05" className="text-ar-faint">
+        <Eyebrow n="06" className="text-ar-faint">
           Market
         </Eyebrow>
         <h2 id="audience-title" className="ar-display mt-6 text-[clamp(2.3rem,4.6vw,4rem)] leading-[0.97] text-ar-ink">
           {audience.heading}
         </h2>
-        <ul className="mt-12 grid border-l border-t border-ar-line md:grid-cols-3">
+        <ul className="mt-12 grid border-l border-t border-ar-line md:grid-cols-2 xl:grid-cols-4">
           {audience.items.map((a) => (
             <li key={a.title} className="border-b border-r border-ar-line bg-ar-bg p-6 md:p-7">
               <h3 className="text-[18px] font-semibold text-ar-ink">{a.title}</h3>
