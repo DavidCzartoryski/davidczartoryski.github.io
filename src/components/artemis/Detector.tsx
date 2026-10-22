@@ -1,6 +1,7 @@
 import { artemis } from "@/data/artemis";
 import { Container, SectionHead, Tag, Ticks } from "./bits";
 import Outputs from "./Outputs";
+import PlanSteps from "./PlanSteps";
 
 const { detector } = artemis;
 const { pipeline } = detector;
@@ -139,20 +140,7 @@ export default function Detector() {
         <div className="mt-16 grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <h3 className="ar-display text-[clamp(1.4rem,2.2vw,1.8rem)] leading-tight text-ar-fg">Every rebalancing plan</h3>
-            <ol className="mt-6 grid grid-cols-2 gap-px border border-ar-line bg-ar-line md:grid-cols-4">
-              {detector.chain.map((c, i) => (
-                <li key={c} className="flex min-h-[84px] flex-col justify-between gap-3 bg-ar-bg p-4">
-                  <span className="ar-mono text-[10.5px] text-ar-faint">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="text-[14.5px] font-medium leading-snug text-ar-fg">{c}</span>
-                </li>
-              ))}
-              <li className="flex min-h-[84px] flex-col justify-between gap-3 bg-ar-fg p-4 text-ar-bg">
-                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v2.8h-2.8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-                <span className="text-[14.5px] font-medium leading-snug">{detector.chainEnd}</span>
-              </li>
-            </ol>
+            <PlanSteps />
             <p className="mt-6 border-l-2 border-ar-ctl pl-4 text-[15.5px] leading-[1.6] text-ar-fg">{detector.never}</p>
           </div>
           <div className="lg:col-span-5">
