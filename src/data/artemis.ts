@@ -124,11 +124,100 @@ export const artemis = {
       { code: 'dist.init_process_group(backend="gpubridge")', note: 'instead of "nccl"' },
       { code: "model = DistributedDataParallel(model)" },
     ],
-    steps: [
-      { n: "1", title: "Reduce", body: "inside each island, on NCCL or RCCL" },
-      { n: "2", title: "Bridge", body: "between the island leaders" },
-      { n: "3", title: "Broadcast", body: "the result back inside each island" },
-    ],
+    collectives: {
+      label: "Collectives, step by step",
+      singleVendor: "With one vendor there's no bridge, and every call goes straight to NCCL or RCCL.",
+      ops: [
+        {
+          id: "all_reduce",
+          label: "all_reduce",
+          call: "dist.all_reduce(grad)",
+          result: "Every rank ends with the sum of all eight.",
+          legend: "Each number stands for one rank's gradient tensor.",
+          steps: [
+            {
+              title: "Reduce",
+              body: "Each island sums onto its leader, on NCCL or RCCL. A reduce moves about half the bytes of an all-reduce.",
+            },
+            {
+              title: "Bridge",
+              body: "The two leaders copy their island sums to host memory and all-reduce them over the bridge.",
+            },
+            { title: "Broadcast", body: "Each leader copies the total back to its GPU and broadcasts it to its island." },
+          ],
+        },
+        {
+          id: "broadcast",
+          label: "broadcast",
+          call: "dist.broadcast(w, src=2)",
+          result: "Every rank ends with rank 2's tensor.",
+          legend: "w is the tensor rank 2 starts with, such as a set of weights.",
+          steps: [
+            { title: "Source island", body: "Rank 2 broadcasts to the rest of the NVIDIA island on NCCL, its leader included." },
+            { title: "Bridge", body: "The NVIDIA leader sends it over the bridge to the AMD leader." },
+            { title: "Other island", body: "The AMD leader broadcasts it to the rest of its island on RCCL." },
+          ],
+        },
+        {
+          id: "all_gather",
+          label: "all_gather",
+          call: "dist.all_gather_into_tensor(out, shard)",
+          result: "Every rank ends with all eight shards, in rank order.",
+          legend: "Each cell is one rank's shard. A filled cell is a shard this rank holds.",
+          steps: [
+            { title: "Gather", body: "Each island gathers its ranks' shards onto its leader." },
+            {
+              title: "Bridge",
+              body: "Each leader in turn broadcasts its island's shards over the bridge. They're plain copies, so the result is exact.",
+            },
+            { title: "Broadcast", body: "Each leader broadcasts the assembled tensor to its island." },
+          ],
+        },
+        {
+          id: "reduce_scatter",
+          label: "reduce_scatter",
+          call: "dist.reduce_scatter_tensor(shard, grad)",
+          result: "Rank r ends with slice r of the sum.",
+          legend: "Each cell is one slice. Shade shows how many ranks it sums: one, an island or all eight.",
+          steps: [
+            { title: "Reduce", body: "Each island sums the whole input onto its leader." },
+            { title: "Bridge", body: "The leaders all-reduce the whole input over the bridge." },
+            { title: "Scatter", body: "Each leader hands every rank in its island that rank's slice." },
+          ],
+        },
+        {
+          id: "send_recv",
+          label: "send / recv",
+          call: "dist.send(act, dst) · dist.recv(act, src)",
+          result: "One rank hands a tensor to another, as pipeline stages do with activations.",
+          legend: "act is a batch of activations on its way to the next pipeline stage.",
+          steps: [
+            { title: "Same vendor", body: "Rank 2 sends to rank 3 inside the NVIDIA island, on NCCL." },
+            {
+              title: "Across vendors",
+              body: "Rank 3 sends to rank 6 over a Gloo link, staged through host memory. The leaders and the bridge aren't involved.",
+            },
+          ],
+        },
+        {
+          id: "barrier",
+          label: "barrier",
+          call: "dist.barrier()",
+          result: "No rank leaves until all eight have arrived.",
+          legend: "The dashed outline is the CPU Gloo group that spans every rank.",
+          steps: [
+            {
+              title: "Check in",
+              body: "Each rank waits for the work it has queued on its own GPU, then enters a barrier on the Gloo group.",
+            },
+            {
+              title: "Release",
+              body: "When the last rank arrives, all eight leave together. One slow rank holds up the rest, as it does at an all-reduce.",
+            },
+          ],
+        },
+      ],
+    },
     features: [
       "DDP, FSDP2 and HSDP through torch.distributed",
       "Async collectives and a DDP communication hook",
@@ -231,7 +320,31 @@ export const artemis = {
       },
       outputs: {
         title: "Out",
-        items: ["JSONL findings", "Incident reports", "Prometheus and Grafana"],
+        hint: "Open one to see a sample.",
+        sample: "Real field names. The values are illustrative, from a simulated job.",
+        items: [
+          {
+            id: "jsonl",
+            name: "JSONL findings",
+            lead: "Every report, one JSON object per line, appended while the job runs. New flags also go to the straggler logger at WARNING.",
+            command: "straggler run ... --jsonl findings.jsonl",
+            caption: "One line of findings.jsonl, wrapped for reading: rank 2 flagged at window 37.",
+          },
+          {
+            id: "incident",
+            name: "Incident reports",
+            lead: "One command turns a run's reports into incidents: when each started, where, how bad it got and the likely cause.",
+            command: "straggler-report findings.jsonl",
+            caption: "The Markdown it writes, rendered.",
+          },
+          {
+            id: "metrics",
+            name: "Prometheus and Grafana",
+            lead: "Rank 0 serves straggler_* metrics off the training thread, and a Grafana dashboard for them comes with the detector.",
+            command: "Detector(exporter=straggler.PrometheusExporter(port=9464))",
+            caption: "A mock of the dashboard's panels, drawn from simulated values. Not a Grafana screenshot.",
+          },
+        ],
       },
       alt: "No native agent? The same scoring runs in-process in Python, fed by GPUBridge's collective observer.",
     },

@@ -1,5 +1,6 @@
 import { artemis } from "@/data/artemis";
 import { Container, SectionHead, Tag, Ticks } from "./bits";
+import Outputs from "./Outputs";
 
 const { detector } = artemis;
 const { pipeline } = detector;
@@ -94,20 +95,7 @@ function Architecture() {
             </div>
           ))}
         </div>
-        <div className="flex flex-col justify-center py-5 lg:py-0 lg:pl-5">
-          <div aria-hidden="true" className="mb-3 flex justify-center lg:hidden">
-            <span className="h-6 w-px bg-ar-line-2" />
-          </div>
-          <p className="ar-label mb-3 text-ar-faint">{pipeline.outputs.title}</p>
-          <ul className="space-y-2">
-            {pipeline.outputs.items.map((o) => (
-              <li key={o} className="ar-mono flex items-center gap-3 border border-ar-line px-3 py-2.5 text-[12px] text-ar-fg">
-                <span aria-hidden="true" className="text-ar-faint">→</span>
-                {o}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Outputs />
       </div>
       <p className="mt-5 border-t border-ar-line pt-4 text-[13.5px] leading-snug text-ar-faint">{pipeline.alt}</p>
     </figure>
