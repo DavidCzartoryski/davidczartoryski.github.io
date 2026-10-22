@@ -1,0 +1,1 @@
+Artemis share card: the headline “GPU performance regressions, caught while the job runs.” above eight GPU rank timelines, four NVIDIA and four AMD, where seven ranks wait at each all-reduce for the one regressed rank drawn in red.

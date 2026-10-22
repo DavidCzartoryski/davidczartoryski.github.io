@@ -72,6 +72,20 @@
   --font-cv: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
   --font-cv-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
+  /* Artemis palette; values live with the .artemis rules at the bottom. */
+  --color-ar-bg: var(--ar-bg);
+  --color-ar-panel: var(--ar-panel);
+  --color-ar-fg: var(--ar-fg);
+  --color-ar-muted: var(--ar-muted);
+  --color-ar-faint: var(--ar-faint);
+  --color-ar-line: var(--ar-line);
+  --color-ar-line-2: var(--ar-line-2);
+  --color-ar-signal: var(--ar-signal);
+  --color-ar-signal-ink: var(--ar-signal-ink);
+  --color-ar-data: var(--ar-data);
+  --color-ar-ctl: var(--ar-ctl);
+  --color-ar-ctl-ink: var(--ar-ctl-ink);
+
   --font-display: var(--font-bodoni), "Didot", "Bodoni MT", Georgia, serif;
   --font-sans: var(--font-instrument), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-plex-mono), "SF Mono", Menlo, monospace;
@@ -394,5 +408,153 @@ html:has(.recruiter) {
   }
   .recruiter :is(li, article) {
     break-inside: avoid;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Artemis (/Artemis). An instrument panel at night: graphite,
+   hairlines and three signal colors that each mean one thing.
+   Red-orange is the regression and nothing else; blue is training
+   data on GPUBridge's bridge; aqua is the detector's own telemetry
+   and control. The three pass the data-viz palette checks on
+   --ar-bg; text wears the -ink steps, never the mark colors.
+   Archivo set wide for display and body, Martian Mono for anything
+   a telemetry readout would print.
+   ────────────────────────────────────────────────────────────── */
+.artemis {
+  --ar-bg: #0d0e11;
+  --ar-panel: #14161a;
+  --ar-fg: #edece7;
+  --ar-muted: #a9a8a2;
+  /* 5.3:1 on --ar-panel, the lightest surface it sits on. */
+  --ar-faint: #8c8b85;
+  --ar-line: rgb(237 236 231 / 0.09);
+  --ar-line-2: rgb(237 236 231 / 0.17);
+  --ar-signal: #ee5c36;
+  --ar-signal-ink: #ff7a57;
+  --ar-data: #3987e5;
+  --ar-ctl: #199e70;
+  --ar-ctl-ink: #2fc28c;
+  font-family: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--ar-bg);
+  background-image:
+    radial-gradient(1100px 520px at 72% -120px, rgb(238 92 54 / 0.09), transparent 70%),
+    linear-gradient(rgb(237 236 231 / 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(237 236 231 / 0.028) 1px, transparent 1px);
+  background-size: auto, 40px 40px, 40px 40px;
+  background-repeat: no-repeat, repeat, repeat;
+  color: var(--ar-fg);
+  -webkit-font-smoothing: antialiased;
+}
+html:has(.artemis),
+html:has(.artemis) body {
+  background: #0d0e11;
+  color-scheme: dark;
+}
+html:has(.artemis) {
+  scroll-padding-top: 7.5rem;
+}
+/* From lg the section index moves into the header's single row. */
+@media (min-width: 1024px) {
+  html:has(.artemis) {
+    scroll-padding-top: 5rem;
+  }
+}
+.artemis ::selection {
+  background: var(--ar-fg);
+  color: var(--ar-bg);
+}
+.artemis :focus-visible {
+  outline: 2px solid var(--ar-fg);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.ar-display {
+  font-stretch: 112%;
+  font-weight: 600;
+  letter-spacing: -0.032em;
+}
+.ar-wide {
+  font-stretch: 125%;
+}
+.ar-mono {
+  font-family: var(--font-martian), ui-monospace, "SF Mono", Menlo, monospace;
+  font-stretch: 87.5%;
+}
+.ar-label {
+  font-family: var(--font-martian), ui-monospace, "SF Mono", Menlo, monospace;
+  font-stretch: 87.5%;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ar-hatch {
+  background: repeating-linear-gradient(45deg, rgb(237 236 231 / 0.32) 0 1.2px, transparent 1.2px 3.5px);
+}
+.ar-fade-x {
+  mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+}
+.ar-scroll-x {
+  scrollbar-width: none;
+}
+.ar-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+@keyframes ar-pulse {
+  50% { opacity: 0.25; }
+}
+.ar-pulse {
+  animation: ar-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ar-rise {
+  from { opacity: 0; transform: translateY(14px); }
+}
+.ar-rise {
+  animation: ar-rise 0.9s var(--ease-out) both;
+  animation-delay: var(--ar-d, 0ms);
+}
+@keyframes ar-type {
+  from { opacity: 0; }
+}
+.ar-type {
+  animation: ar-type 0.35s steps(2) both;
+  animation-delay: calc(var(--ar-type-base, 1100ms) + var(--ar-i, 0) * 150ms);
+}
+@keyframes ar-flow {
+  to { stroke-dashoffset: -40; }
+}
+.ar-flow {
+  animation: ar-flow 1.4s linear infinite;
+}
+/* A wire between two endpoints: dashes in the channel's color, moving toward
+   the receiving end. --ar-wire sets the color; .ar-wire-back runs it home. */
+.ar-wire {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--ar-wire) 0 8px, transparent 8px 14px);
+  background-size: 14px 2px;
+  animation: ar-wire 0.9s linear infinite;
+}
+.ar-wire-back {
+  animation-direction: reverse;
+}
+@keyframes ar-wire {
+  to { background-position: 14px 0; }
+}
+.ar-wire-v {
+  width: 2px;
+  height: auto;
+  background: repeating-linear-gradient(180deg, var(--ar-wire) 0 8px, transparent 8px 14px);
+  background-size: 2px 14px;
+  animation-name: ar-wire-v;
+}
+@keyframes ar-wire-v {
+  to { background-position: 0 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .artemis :is(.ar-pulse, .ar-rise, .ar-type, .ar-flow, .ar-wire) {
+    animation: none;
+  }
+  html:has(.artemis) {
+    scroll-behavior: auto;
   }
 }

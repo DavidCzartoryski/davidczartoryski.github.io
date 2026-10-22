@@ -10,6 +10,7 @@
     "geo": "node scripts/build-geo.mjs",
     "photos": "node scripts/build-photos.mjs",
     "og": "node scripts/build-og.mjs",
+    "og:artemis": "node scripts/build-artemis-og.mjs",
     "globe": "node scripts/build-globe.mjs",
     "assets": "npm run geo && npm run globe && npm run photos && npm run og"
   },
