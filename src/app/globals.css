@@ -75,7 +75,6 @@
   /* Artemis palette; values live with the .artemis rules at the bottom. */
   --color-ar-bg: var(--ar-bg);
   --color-ar-panel: var(--ar-panel);
-  --color-ar-panel-2: var(--ar-panel-2);
   --color-ar-fg: var(--ar-fg);
   --color-ar-muted: var(--ar-muted);
   --color-ar-faint: var(--ar-faint);
@@ -84,7 +83,6 @@
   --color-ar-signal: var(--ar-signal);
   --color-ar-signal-ink: var(--ar-signal-ink);
   --color-ar-data: var(--ar-data);
-  --color-ar-data-ink: var(--ar-data-ink);
   --color-ar-ctl: var(--ar-ctl);
   --color-ar-ctl-ink: var(--ar-ctl-ink);
 
@@ -426,17 +424,15 @@ html:has(.recruiter) {
 .artemis {
   --ar-bg: #0d0e11;
   --ar-panel: #14161a;
-  --ar-panel-2: #1a1d22;
   --ar-fg: #edece7;
   --ar-muted: #a9a8a2;
-  /* 4.95:1 on --ar-panel-2, the darkest it sits on. */
+  /* 5.3:1 on --ar-panel, the lightest surface it sits on. */
   --ar-faint: #8c8b85;
   --ar-line: rgb(237 236 231 / 0.09);
   --ar-line-2: rgb(237 236 231 / 0.17);
   --ar-signal: #ee5c36;
   --ar-signal-ink: #ff7a57;
   --ar-data: #3987e5;
-  --ar-data-ink: #5ea0ef;
   --ar-ctl: #199e70;
   --ar-ctl-ink: #2fc28c;
   font-family: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
@@ -504,13 +500,6 @@ html:has(.artemis) {
 .ar-scroll-x::-webkit-scrollbar {
   display: none;
 }
-@keyframes ar-scroll {
-  to { transform: translateX(calc(-1 * var(--ar-loop))); }
-}
-.ar-lanes {
-  animation: ar-scroll var(--ar-loop-s) linear infinite;
-  will-change: transform;
-}
 @keyframes ar-pulse {
   50% { opacity: 0.25; }
 }
@@ -537,12 +526,6 @@ html:has(.artemis) {
 .ar-flow {
   animation: ar-flow 1.4s linear infinite;
 }
-@keyframes ar-flow-back {
-  to { stroke-dashoffset: 40; }
-}
-.ar-flow-back {
-  animation: ar-flow-back 1.4s linear infinite;
-}
 /* A wire between two endpoints: dashes in the channel's color, moving toward
    the receiving end. --ar-wire sets the color; .ar-wire-back runs it home. */
 .ar-wire {
@@ -568,7 +551,10 @@ html:has(.artemis) {
   to { background-position: 0 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .artemis :is(.ar-lanes, .ar-pulse, .ar-rise, .ar-type, .ar-flow, .ar-flow-back, .ar-wire) {
+  .artemis :is(.ar-pulse, .ar-rise, .ar-type, .ar-flow, .ar-wire) {
     animation: none;
+  }
+  html:has(.artemis) {
+    scroll-behavior: auto;
   }
 }

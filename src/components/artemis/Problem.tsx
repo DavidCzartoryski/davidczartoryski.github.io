@@ -57,7 +57,7 @@ export default function Problem() {
               <p className="mt-5 text-[15.5px] leading-[1.6] text-ar-muted">{problem.cost.body}</p>
             </div>
             <table className="ar-mono w-full text-[12px] tabular-nums">
-              <caption className="ar-label pb-3 text-left text-[9.5px] text-ar-faint">One slow rank, the whole job</caption>
+              <caption className="ar-label pb-3 text-left text-[9.5px] text-ar-faint">One slow rank, the whole job, at most</caption>
               <thead className="text-ar-faint">
                 <tr className="border-b border-ar-line-2">
                   <th scope="col" className="py-2 text-left font-normal">Rank slower by</th>
@@ -80,7 +80,7 @@ export default function Problem() {
               </div>
               <div className="ar-mono mt-2.5 flex justify-between text-[10.5px] uppercase tracking-[0.08em] text-ar-faint">
                 <span>512 GPUs, one 8% slow</span>
-                <span className="text-ar-fg">≈ 38 waiting</span>
+                <span className="text-ar-fg">up to 38 waiting</span>
               </div>
             </div>
           </aside>

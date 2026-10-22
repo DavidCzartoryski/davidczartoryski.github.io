@@ -10,8 +10,9 @@ import { useEffect, useRef, useState } from "react";
  * 18 (3 suspect windows out of the last 4). Synthetic, seeded data.
  *
  * Measured in px rather than scaled through a viewBox, so the labels stay
- * legible on a phone. Hover, touch or the arrow keys move a crosshair; the same
- * numbers are in the table underneath.
+ * legible on a phone. Until the first measurement (and on the server) it draws
+ * at 720 px through a viewBox, scaled to fit. Hover, touch or the arrow keys
+ * move a crosshair; the same numbers are in the table underneath.
  */
 
 const WINDOWS = 32;
@@ -57,7 +58,8 @@ const fmtX = (v: number) => `${v.toFixed(2)}×`;
 
 export default function RegressionChart() {
   const wrap = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(720);
+  const [measured, setWidth] = useState<number | null>(null);
+  const width = measured ?? 720;
   const [hover, setHover] = useState<number | null>(null);
 
   useEffect(() => {
@@ -142,7 +144,12 @@ export default function RegressionChart() {
         onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
         onBlur={() => setHover(null)}
       >
-        <svg width={width} height={height} className="block" aria-hidden="true">
+        <svg
+          {...(measured === null
+            ? { viewBox: `0 0 ${width} ${height}`, className: "block h-auto w-full" }
+            : { width, height, className: "block" })}
+          aria-hidden="true"
+        >
           {/* Panel A: job step time. */}
           <text x={ml} y={aTop - 14} className="ar-mono fill-ar-muted" fontSize="10.5" letterSpacing="0.06em">
             STEP TIME · MS

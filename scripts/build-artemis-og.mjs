@@ -182,7 +182,7 @@ function card() {
     <text x="${M - 2}" y="204">GPU performance regressions,</text>
     <text x="${M - 2}" y="274" fill="${C.signalInk}">caught while the job runs.</text>
   </g>
-  <text x="${M}" y="330" font-family="AR Mono" font-size="15" letter-spacing="1.3" fill="${C.muted}">RUNTIME DIAGNOSTICS FOR DISTRIBUTED GPU TRAINING · NVIDIA + AMD</text>
+  <text x="${M}" y="330" font-family="AR Mono" font-size="15" letter-spacing="1.3" fill="${C.muted}">RUNTIME DIAGNOSTICS FOR DISTRIBUTED GPU TRAINING · BUILT FOR NVIDIA AND AMD</text>
 
   <!-- Rank lanes -->
   <rect x="${panel.x + 0.5}" y="${panel.y + 0.5}" width="${panel.w - 1}" height="${panel.h - 1}" fill="${C.card}" stroke="${C.line}"/>

@@ -24,12 +24,12 @@ export const artemis = {
     eyebrow: "Runtime diagnostics for distributed GPU training",
     lead: "GPU performance regressions,",
     mark: "caught while the job runs.",
-    lede: "A GPU that drops its clocks, a link that degrades, a host that stalls on input: none of them crash a training job. They slow every step instead, by a few percent, for days. Artemis watches the NCCL and RCCL collectives on NVIDIA and AMD, flags the rank, link or vendor island that regressed, estimates what it costs per step and, if you opt in, rebalances work across the GPUs the job already has.",
+    lede: "A GPU that drops its clocks, a link that degrades, a host that stalls on input: none of them crash a training job. They slow every step instead, by a few percent, for days. Artemis times the collectives every rank already runs, flags the rank, link or vendor island that regressed, estimates what it costs per step and, if you opt in, rebalances work across the GPUs the job already has. It's built for NVIDIA, AMD or both in one job.",
     specs: [
-      { k: "Watches", v: "NCCL and RCCL collectives, plus GPU telemetry" },
-      { k: "Runs on", v: "NVIDIA, AMD, or both in one job with GPUBridge" },
+      { k: "Watches", v: "Collectives on NCCL, RCCL or GPUBridge" },
+      { k: "Built for", v: "NVIDIA, AMD, or both in one job" },
+      { k: "Tested on", v: "NVIDIA V100s, with InfiniBand; AMD is next" },
       { k: "Built in", v: "C, Rust and Python" },
-      { k: "Stage", v: "Early, solo-founded, tested on real GPUs" },
     ],
     caption:
       "Illustration. Eight ranks in synchronous data-parallel training, four NVIDIA and four AMD. Rank 2 has regressed, so the other seven reach every all-reduce early and wait for it. Press Rebalance to apply the plan.",
@@ -58,13 +58,13 @@ export const artemis = {
         { slow: "10%", idle: "9.1%" },
         { slow: "20%", idle: "16.7%" },
       ],
-      body: "If one rank's compute runs s slower, every step stretches by up to s, and roughly s ÷ (1 + s) of every GPU-hour in the job goes to waiting. One rank 8% slow in a 512-GPU job idles the equivalent of about 38 GPUs.",
+      body: "If one rank's compute runs s slower, every step stretches by up to s, and up to s ÷ (1 + s) of every GPU-hour in the job goes to waiting: the bound when compute sets the step. One rank 8% slow in a 512-GPU job can idle the equivalent of 38 GPUs.",
     },
     chart: {
       heading: "Why step time alone can't find it",
       body: "Every rank sees the same, slower step. What separates the culprit is its compute time against its peers.",
       caption:
-        "Illustration with synthetic numbers. Windows are 50 steps. A rank is suspect when it runs slow against its island's peers and its own baseline, and flagged after 3 suspect windows out of the last 4.",
+        "Illustration with synthetic numbers. Windows are 50 steps. A rank is suspect when its compute runs about 10% over the median of its island's other ranks, and flagged after 3 suspect windows out of the last 4.",
     },
   },
 
@@ -92,19 +92,19 @@ export const artemis = {
       {
         title: "From Gloo to Rust and RDMA",
         tag: "Rust · libibverbs",
-        body: "Measurements put the bottleneck on the bridge: about 1.2 GB/s of TCP through host memory. Research into RDMA moved the transports to Rust. A multi-stream TCP prototype missed its own speed target and was dropped; a raw-verbs transport over libibverbs replaced it and now runs on InfiniBand hardware.",
+        body: "Measurements put the bottleneck on the bridge: about 1.2 GB/s of TCP through host memory. Research into RDMA moved the transports to Rust. A multi-stream TCP prototype missed its own speed target and was dropped; a raw-verbs transport over libibverbs followed and has run on InfiniBand hardware, between two NVIDIA islands on one host.",
         href: "#transport",
       },
       {
         title: "Artemis",
         tag: "The detector",
-        body: "With mixed-vendor jobs running, the detector followed. It flags regressions, estimates what each one costs, names the likely cause and, on opt-in, rebalances work at runtime. Its agent, coordinator and scoring core are Rust, with their own RDMA channel.",
+        body: "With mixed-vendor jobs running, the detector followed. It flags regressions, estimates what each one costs, suggests a likely cause and, on opt-in, rebalances work at runtime. Its agent, coordinator and scoring core are Rust, with their own RDMA channel.",
         href: "#detector",
       },
       {
         title: "Learned diagnosis",
         tag: "In development",
-        body: "Using GPU incident and recovery data to train a model that suggests likely causes, the checks that confirm them and the fixes.",
+        body: "Research into a model, trained on GPU incident and recovery data, that suggests likely causes, the checks that confirm them and the fixes.",
         href: "#research",
       },
     ],
@@ -140,13 +140,13 @@ export const artemis = {
     stats: [
       {
         value: "2.75×",
-        label: "faster 1 GB all-reduce between a V100 and an MI50 with fp8 on the bridge, 1.67 s to 0.61 s",
+        label: "faster 1 GB all-reduce between a V100 and an MI50 with lossy fp8 on the bridge, 1.67 s to 0.61 s",
       },
       {
         value: "1.10×",
-        label: "a V100's training throughput, with an MI50 added as a second pipeline stage",
+        label: "a V100's training throughput, with an MI50 added as a second pipeline stage (best hand-tuned split; automatic gave 1.07×)",
       },
-      { value: "6", label: "GPU models run: V100, T4, L40S, A100, H200 and MI50" },
+      { value: "6", label: "GPU models it has run on: V100, T4, L40S, A100, H200 and MI50" },
     ],
     insight:
       "On one V100 and one MI50 over TCP, the pipeline beat the V100 alone and data parallelism didn't. Each data-parallel step all-reduces 536 MB of gradients over a link of about 1.2 GB/s; the pipeline passes 3 MB of activations per microbatch. Mixing vendors pays when the parallelism fits the link.",
@@ -163,7 +163,7 @@ export const artemis = {
       },
       {
         term: "Gloo",
-        body: "PyTorch's CPU collective library, over TCP. It's GPUBridge's default bridge because it runs on any network.",
+        body: "PyTorch's CPU collective backend, over TCP. It's GPUBridge's default bridge because it runs on any network.",
       },
       {
         term: "InfiniBand",
@@ -186,7 +186,7 @@ export const artemis = {
           ["Default", "Gloo over TCP, staged through host memory"],
           ["Opt-in", "Rust over libibverbs: reliable-connected sends and RDMA writes into registered buffers"],
         ],
-        status: "The verbs path has run on one host through one InfiniBand HCA, with GPU tensors staged through host memory.",
+        status: "The verbs path has run on one host, between two NVIDIA islands, through one InfiniBand HCA, with GPU tensors staged through host memory.",
       },
       {
         key: "ctl",
@@ -199,7 +199,7 @@ export const artemis = {
         status: "Has run end to end during real 4-rank DDP training on one host, over InfiniBand.",
       },
     ],
-    next: "Next for both: across machines, on AMD, and GPU memory straight to the NIC with GPUDirect RDMA.",
+    next: "Next for both channels: across machines and on AMD. For training data, GPU memory straight to the NIC with GPUDirect RDMA.",
   },
 
   detector: {
@@ -207,13 +207,15 @@ export const artemis = {
     heading: "From collective timings to a finding you can act on.",
     body: "Every rank already checks in at the same place several times a step: the collectives. Artemis times them on each rank, scores each window of steps against the rank's peers and its own history, and reports what slowed down, by how much and why. Collection never blocks a rank, and scoring happens away from the training step.",
     source: "Source private for now",
-    attach: "straggler run --every 50 --jsonl findings.jsonl -- torchrun ... train.py",
+    attach: "straggler run --plugin --every 50 --jsonl findings.jsonl -- torchrun ... train.py",
+    attachNote:
+      "Runs the detector in-process, on the profiler plugin or GPUBridge's records. Opt-in rebalancing adds one call per step boundary to the training loop.",
     pipeline: {
       node: {
         title: "Each training node",
         items: [
           { name: "Training ranks", body: "PyTorch DDP or FSDP on NCCL or RCCL. The script is unchanged." },
-          { name: "Profiler plugin · C", body: "Loaded through NCCL's and RCCL's profiler plugin API. Device-side timing of every collective." },
+          { name: "Profiler plugin · C", body: "Loaded through NCCL's profiler plugin API, which RCCL shares. Device-side timing of every collective." },
           { name: "Shared-memory rings", body: "One per rank, written seqlock-style, so the reader never holds a rank up." },
           { name: "Node agent · Rust", body: "Reads the rings and sends one summary per window." },
         ],
@@ -222,7 +224,7 @@ export const artemis = {
       coordinator: {
         title: "Coordinator · Rust",
         items: [
-          { name: "Scoring core", body: "Peers, baselines and hardware classes, window by window." },
+          { name: "Scoring core", body: "Island peers and warmup baselines, window by window." },
           { name: "Findings", body: "Slow rank, island, bridge link or vendor collective, and hangs." },
           { name: "Rebalance policy", body: "Opt-in. Turns a finding into a bounded plan." },
         ],
@@ -242,12 +244,12 @@ export const artemis = {
       {
         n: "02",
         title: "Score",
-        body: "Each window, every rank is compared with its island's peers and its own warmup baseline. Hardware classes keep a slower GPU generation from reading as a fault. A flag needs 3 suspect windows out of the last 4.",
+        body: "Each window, every rank is compared with the other ranks in its island: about 10% over their median makes it suspect, and 3 suspect windows out of the last 4 flag it. Each island's warmup baseline catches a whole island slowing together. Opt-in hardware classes, tested in simulation so far, keep a slower GPU generation from reading as a fault.",
       },
       {
         n: "03",
         title: "Explain",
-        body: "Each finding carries its cost in milliseconds and percent of the step, and a likely cause from GPU telemetry: thermal, power, clocks, PCIe or host. Missing telemetry is reported as missing. A hang names the ranks behind and dumps each rank's last 256 collectives.",
+        body: "Each finding carries its cost in milliseconds and percent of the step, and a likely cause from GPU telemetry: thermal, power, clocks, PCIe or host, tested against simulated telemetry so far. Missing telemetry is reported as missing. A hang names the ranks behind and dumps each rank's last 256 collectives.",
       },
       {
         n: "04",
@@ -301,14 +303,14 @@ export const artemis = {
       {
         scope: "gpubridge",
         value: "2.75×",
-        result: "faster 1 GB all-reduce across NVIDIA and AMD with fp8 compression on the bridge",
+        result: "faster 1 GB all-reduce across NVIDIA and AMD with lossy fp8 compression on the bridge",
         setup: "One V100 and one MI50 over TCP: 1.67 s down to 0.61 s.",
       },
       {
         scope: "gpubridge",
         value: "1.10×",
         result: "training throughput of a V100 and an MI50 as a pipeline, over the V100 alone",
-        setup: "LLaMA-style model with 134M parameters, 500 steps, two runs of each setting.",
+        setup: "Best hand-tuned split; the automatic one gave 1.07×. LLaMA-style model, 134M parameters, 500 steps, two runs each.",
       },
     ],
     next: {
@@ -354,7 +356,7 @@ export const artemis = {
     photo: { src: "/team/david.webp", alt: "David Czartoryski in a dark suit and tie." },
     body: [
       "David started Artemis to answer one question about distributed training: which GPU is slowing this job down, and why? Answering it across vendors meant building GPUBridge first.",
-      "The work runs from PyTorch distributed and a C profiler plugin to Rust agents and RDMA transports, validated on GPU clusters. He studies Computer Science and Business Administration at Northeastern University.",
+      "The work runs from PyTorch distributed and a C profiler plugin to Rust agents and RDMA transports, tested on real NVIDIA and AMD GPUs. He studies Computer Science and Business Administration at Northeastern University.",
     ],
     links: [
       { href: "/recruiter/", label: "Résumé" },

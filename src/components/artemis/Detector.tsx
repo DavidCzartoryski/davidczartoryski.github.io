@@ -181,9 +181,7 @@ export default function Detector() {
                 </code>
               </pre>
             </figure>
-            <p className="mt-4 text-[14px] leading-snug text-ar-faint">
-              Or two lines in the training loop: create a detector after the process group, call its step once per optimizer step.
-            </p>
+            <p className="mt-4 text-[14px] leading-snug text-ar-faint">{detector.attachNote}</p>
           </div>
         </div>
       </Container>

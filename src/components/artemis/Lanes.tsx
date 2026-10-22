@@ -16,7 +16,7 @@ import { useEffect, useId, useRef } from "react";
  * loop scrolls the strip and writes the geometry straight onto the SVG, so the
  * bars can change width smoothly without a React render per frame. A pool of
  * POOL step groups is reused as steps scroll past. Reduced motion gets a still
- * strip that switches at once.
+ * strip that switches at once, and the setting is followed if it changes.
  */
 
 export const RANKS = [
@@ -177,7 +177,8 @@ export default function Lanes({ balanced }: { balanced: boolean }) {
   useEffect(() => {
     const groups = strip.current ? (Array.from(strip.current.children) as SVGGElement[]) : [];
     if (!groups.length || !box.current) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reduced = motion.matches;
 
     let progress = target.current; // 0..1, eased into t
     let k0 = 0; // the step at the left edge
@@ -244,8 +245,21 @@ export default function Lanes({ balanced }: { balanced: boolean }) {
     io.observe(box.current);
     if (!reduced) start();
 
+    // The setting can change while the page is open.
+    const onMotion = () => {
+      reduced = motion.matches;
+      if (reduced) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        progress = target.current;
+        layout(0, true);
+      } else if (visible) start();
+    };
+    motion.addEventListener("change", onMotion);
+
     return () => {
       io.disconnect();
+      motion.removeEventListener("change", onMotion);
       cancelAnimationFrame(raf);
       wake.current = () => {};
     };

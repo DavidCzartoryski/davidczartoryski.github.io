@@ -20,7 +20,7 @@ const martian = Martian_Mono({ subsets: ["latin"], axes: ["wdth"], variable: "--
 
 const TITLE = `${artemis.name} · GPU performance regressions in distributed training`;
 const DESCRIPTION =
-  "Artemis finds GPU performance regressions in distributed PyTorch training while the job runs, on NVIDIA, AMD or both: it flags the slow rank, link or island, estimates the cost per step and can rebalance work on opt-in. GPUBridge, its MIT-licensed companion, runs NVIDIA and AMD GPUs in one PyTorch job. By David Czartoryski.";
+  "Artemis finds GPU performance regressions in distributed PyTorch training while the job runs. Built for NVIDIA, AMD or both, it flags the slow rank, link or island, estimates the cost per step and can rebalance work on opt-in. GPUBridge, its MIT-licensed companion, runs NVIDIA and AMD GPUs in one PyTorch job. By David Czartoryski.";
 
 export const metadata: Metadata = {
   title: TITLE,

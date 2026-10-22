@@ -17,11 +17,11 @@ function Chip({ x, y, label, leader, w = CHIP_W }: { x: number; y: number; label
         rx="3"
         className={leader ? "fill-ar-fg/[0.08] stroke-ar-fg/70" : "fill-ar-fg/[0.025] stroke-ar-fg/25"}
       />
-      <text x={x + 12} y={y + 22} className="ar-mono fill-ar-fg" fontSize="12">
+      <text x={x + 12} y={y + 23} className="ar-mono fill-ar-fg" fontSize="13.5">
         {label}
       </text>
       {leader && (
-        <text x={x + 12} y={y + 40} className="ar-mono fill-ar-muted" fontSize="9" letterSpacing="0.08em">
+        <text x={x + 12} y={y + 41} className="ar-mono fill-ar-muted" fontSize="10" letterSpacing="0.06em">
           LEADER
         </text>
       )}
@@ -42,10 +42,10 @@ function Wide() {
       ].map((island) => (
         <g key={island.title}>
           <rect x={island.x} y={28} width={270} height={244} rx="4" className="fill-none stroke-ar-fg/15" />
-          <text x={island.x + 18} y={56} className="ar-mono fill-ar-muted" fontSize="10.5" letterSpacing="0.12em">
+          <text x={island.x + 18} y={56} className="ar-mono fill-ar-muted" fontSize="12" letterSpacing="0.12em">
             {island.title}
           </text>
-          <text x={island.x + 18} y={258} className="ar-mono fill-ar-faint" fontSize="9.5" letterSpacing="0.08em">
+          <text x={island.x + 18} y={258} className="ar-mono fill-ar-faint" fontSize="12" letterSpacing="0.04em">
             1 REDUCE · 3 BROADCAST
           </text>
         </g>
@@ -72,17 +72,17 @@ function Wide() {
       <path d="M266 107 H454" className="stroke-ar-data/25" strokeWidth="7" fill="none" />
       <path d="M266 107 H454" className="ar-flow stroke-ar-data" strokeWidth="2" strokeDasharray="10 10" fill="none" />
       <circle cx="360" cy="107" r="13" className="fill-ar-bg stroke-ar-data" strokeWidth="1.5" />
-      <text x="360" y="111" textAnchor="middle" className="ar-mono fill-ar-fg" fontSize="11">
+      <text x="360" y="111.5" textAnchor="middle" className="ar-mono fill-ar-fg" fontSize="12">
         2
       </text>
-      <text x="360" y="80" textAnchor="middle" className="ar-mono fill-ar-fg" fontSize="10" letterSpacing="0.14em">
+      <text x="360" y="80" textAnchor="middle" className="ar-mono fill-ar-fg" fontSize="12" letterSpacing="0.12em">
         THE BRIDGE
       </text>
-      <text x="360" y="140" textAnchor="middle" className="ar-mono fill-ar-faint" fontSize="9" letterSpacing="0.06em">
-        GLOO · TCP BY DEFAULT
+      <text x="360" y="143" textAnchor="middle" className="ar-mono fill-ar-muted" fontSize="11" letterSpacing="0.02em">
+        DEFAULT: GLOO/TCP
       </text>
-      <text x="360" y="154" textAnchor="middle" className="ar-mono fill-ar-faint" fontSize="9" letterSpacing="0.06em">
-        RUST VERBS, OPT-IN
+      <text x="360" y="159" textAnchor="middle" className="ar-mono fill-ar-muted" fontSize="11" letterSpacing="0.02em">
+        OPT-IN: RUST VERBS
       </text>
     </svg>
   );
@@ -140,8 +140,8 @@ export default function Bridge() {
   return (
     <section id="gpubridge" aria-labelledby="bridge-title" className="border-t border-ar-line bg-ar-panel/50 py-20 md:py-28">
       <Container>
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
-          <div className="min-w-0 lg:col-span-5">
+        <div className="grid gap-12 xl:grid-cols-12 xl:gap-10">
+          <div className="min-w-0 max-w-[720px] xl:col-span-5 xl:max-w-none">
             <Eyebrow n="03">{bridge.eyebrow}</Eyebrow>
             <h2 id="bridge-title" className="ar-display mt-6 text-[clamp(2.1rem,4.2vw,3.5rem)] leading-[1.02] text-ar-fg">
               {bridge.heading}
@@ -178,7 +178,7 @@ export default function Bridge() {
             </div>
           </div>
 
-          <div className="min-w-0 lg:col-span-7 lg:pl-6">
+          <div className="min-w-0 xl:col-span-7 xl:pl-6">
             <figure className="border border-ar-line-2 bg-ar-bg p-4 md:p-6">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <span className="ar-label text-ar-faint">One all-reduce</span>

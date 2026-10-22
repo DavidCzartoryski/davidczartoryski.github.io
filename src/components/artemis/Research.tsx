@@ -50,7 +50,7 @@ export default function Research() {
           <div className="border border-ar-line-2 bg-ar-bg p-6 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="ar-display text-[22px] leading-tight text-ar-fg">{research.today.title}</h3>
-              <Tag tone="ctl">Built</Tag>
+              <Tag tone="ctl">Built · synthetic tests</Tag>
             </div>
             <ul className="mt-6 space-y-4">
               {research.today.items.map((item) => (

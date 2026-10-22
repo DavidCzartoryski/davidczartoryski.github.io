@@ -12,7 +12,7 @@ const WIRE = {
 
 function Endpoint({ children }: { children: React.ReactNode }) {
   return (
-    <span className="ar-mono w-[82px] shrink-0 rounded-[3px] border border-ar-line-2 bg-ar-bg px-1 py-2 text-center text-[10.5px] leading-tight text-ar-fg sm:w-auto sm:px-3 sm:text-[11.5px]">
+    <span className="ar-mono w-[82px] shrink-0 rounded-[3px] border border-ar-line-2 bg-ar-bg px-1 py-2 text-center text-[10.5px] leading-tight text-ar-fg xl:w-auto xl:px-3 xl:text-[11.5px]">
       {children}
     </span>
   );
@@ -65,6 +65,9 @@ export default function Transport() {
                 </div>
                 <div className="mt-6">
                   <Wires channel={c} />
+                  <p className="sr-only">
+                    {c.from} to {c.to}.
+                  </p>
                 </div>
                 <p className="mt-6 text-[15.5px] leading-[1.6] text-ar-fg">{c.carries}</p>
                 <dl className="mt-5 border-t border-ar-line">
