@@ -1,10 +1,10 @@
 // Draws the /Artemis share card: the crescent mark and wordmark, the hero line
-// with "slowest GPU." in signal red, and eight rank lanes where rank 2 computes
-// slowly and the other seven wait for it at every all-reduce. Writes
+// with "caught while the job runs." in signal red, and eight rank lanes where
+// rank 2 has regressed and the other seven wait for it at every all-reduce. Writes
 // src/app/Artemis/opengraph-image.png and twitter-image.png (1200x630) and
 // their .alt.txt files.
 //
-// The type is the page's own: Archivo (wdth 116 / wght 620 for the headline,
+// The type is the page's own: Archivo (wdth 112 / wght 600 for the headline,
 // wdth 125 for the wordmark) and Martian Mono (wdth 87.5). Pass the variable
 // TTFs with --archivo <ttf> --mono <ttf>; without them the script downloads
 // both from github.com/google/fonts into a fresh temp directory and deletes it
@@ -21,7 +21,7 @@ const ROOT = new URL("../", import.meta.url).pathname;
 const OUT = `${ROOT}src/app/Artemis`;
 const W = 1200, H = 630;
 const ALT =
-  "Artemis share card: the headline “Every training step waits for the slowest GPU.” above eight GPU rank timelines, where seven ranks wait at each all-reduce for the one slow rank drawn in red.";
+  "Artemis share card: the headline “GPU performance regressions, caught while the job runs.” above eight GPU rank timelines, four NVIDIA and four AMD, where seven ranks wait at each all-reduce for the one regressed rank drawn in red.";
 
 const FONT_URLS = {
   archivo: "https://raw.githubusercontent.com/google/fonts/main/ofl/archivo/Archivo%5Bwdth,wght%5D.ttf",
@@ -57,7 +57,7 @@ try {
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
   <dir>${work}</dir>
-  <cachedir>${join(work, "cache")}</cachedir>${alias("AR Display", "Archivo", "wdth=116,wght=620")}${alias("AR Wide", "Archivo", "wdth=125,wght=600")}${alias("AR Mono", "Martian Mono", "wdth=87.5,wght=400")}${alias("AR Mono Bold", "Martian Mono", "wdth=87.5,wght=600")}
+  <cachedir>${join(work, "cache")}</cachedir>${alias("AR Display", "Archivo", "wdth=112,wght=600")}${alias("AR Wide", "Archivo", "wdth=125,wght=600")}${alias("AR Mono", "Martian Mono", "wdth=87.5,wght=400")}${alias("AR Mono Bold", "Martian Mono", "wdth=87.5,wght=600")}
 </fontconfig>`,
   );
   process.env.FONTCONFIG_FILE = join(work, "fonts.conf");
@@ -77,15 +77,16 @@ try {
 
 // ── Card ─────────────────────────────────────────────────────────────────────
 function card() {
+  // The page's palette (.artemis in globals.css). "ink" is the foreground.
   const C = {
-    bg: "#ECE9E1",
-    card: "#F6F4EF",
-    ink: "#131418",
-    muted: "#45464C",
-    faint: "#5E5F64",
-    line: "rgba(19,20,24,0.12)",
-    signal: "#D9411F",
-    signalInk: "#B5321A",
+    bg: "#0D0E11",
+    card: "#14161A",
+    ink: "#EDECE7",
+    muted: "#A9A8A2",
+    faint: "#8C8B85",
+    line: "rgba(237,236,231,0.14)",
+    signal: "#EE5C36",
+    signalInk: "#FF7A57",
   };
   const M = 64; // outer margin
 
@@ -127,11 +128,11 @@ function card() {
       const y = laneY(i) + (lane - bar) / 2;
       const c = step.compute[i];
       const isSlow = i === SLOW_RANK;
-      lanes += `<rect x="${step.x}" y="${y}" width="${c}" height="${bar}" rx="2" fill="${isSlow ? C.signal : C.ink}" fill-opacity="${isSlow ? 1 : 0.82}"/>`;
+      lanes += `<rect x="${step.x}" y="${y}" width="${c}" height="${bar}" rx="2" fill="${isSlow ? C.signal : C.ink}" fill-opacity="${isSlow ? 1 : 0.7}"/>`;
       if (step.barrier - c > 2) {
         lanes += `<rect x="${step.x + c + 1.5}" y="${y + 0.5}" width="${step.barrier - c - 2.5}" height="${bar - 1}" rx="1.5" fill="url(#hatch)" stroke="${C.ink}" stroke-opacity="0.25" stroke-width="1"/>`;
       }
-      lanes += `<rect x="${bx + 1.5}" y="${y}" width="${comm - 3}" height="${bar}" rx="2" fill="${C.ink}" fill-opacity="0.24"/>`;
+      lanes += `<rect x="${bx + 1.5}" y="${y}" width="${comm - 3}" height="${bar}" rx="2" fill="${C.ink}" fill-opacity="0.2"/>`;
     }
   }
 
@@ -147,7 +148,7 @@ function card() {
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
-      <circle cx="12" cy="12" r="1" fill="${C.ink}" fill-opacity="0.07"/>
+      <circle cx="12" cy="12" r="1" fill="${C.ink}" fill-opacity="0.06"/>
     </pattern>
     <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
       <line x1="0" y1="0" x2="0" y2="5" stroke="${C.ink}" stroke-opacity="0.32" stroke-width="1.4"/>
@@ -177,11 +178,11 @@ function card() {
   <text x="${M + 54}" y="80" font-family="AR Wide" font-size="22" letter-spacing="3.52" fill="${C.ink}">ARTEMIS</text>
 
   <!-- Headline -->
-  <g font-family="AR Display" font-size="74" letter-spacing="-2.6" fill="${C.ink}">
-    <text x="${M - 3}" y="212">Every training step waits</text>
-    <text x="${M - 3}" y="286">for the <tspan fill="${C.signal}">slowest GPU.</tspan></text>
+  <g font-family="AR Display" font-size="62" letter-spacing="-2" fill="${C.ink}">
+    <text x="${M - 2}" y="204">GPU performance regressions,</text>
+    <text x="${M - 2}" y="274" fill="${C.signalInk}">caught while the job runs.</text>
   </g>
-  <text x="${M}" y="334" font-family="AR Mono" font-size="16" letter-spacing="1.3" fill="${C.muted}">RUNTIME RELIABILITY FOR GPU TRAINING · NVIDIA + AMD</text>
+  <text x="${M}" y="330" font-family="AR Mono" font-size="15" letter-spacing="1.3" fill="${C.muted}">RUNTIME DIAGNOSTICS FOR DISTRIBUTED GPU TRAINING · NVIDIA + AMD</text>
 
   <!-- Rank lanes -->
   <rect x="${panel.x + 0.5}" y="${panel.y + 0.5}" width="${panel.w - 1}" height="${panel.h - 1}" fill="${C.card}" stroke="${C.line}"/>

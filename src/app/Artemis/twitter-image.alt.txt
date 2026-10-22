@@ -1,1 +1,1 @@
-Artemis share card: the headline "Every training step waits for the slowest GPU." above eight GPU rank timelines, where seven ranks wait at each all-reduce for the one slow rank drawn in red.
+Artemis share card: the headline “GPU performance regressions, caught while the job runs.” above eight GPU rank timelines, four NVIDIA and four AMD, where seven ranks wait at each all-reduce for the one regressed rank drawn in red.

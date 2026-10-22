@@ -18,9 +18,9 @@ npm run build      # static export to ./out
 src/app/                 root layout (fonts, metadata), globals.css (tokens, keyframes)
   (experience)/          the full site: layout (song, intro, 3D layer, nav) and page (section order)
   recruiter/             /recruiter, the no-sound résumé view
-  Artemis/               /Artemis, the venture page for the straggler detector and GPUBridge
+  Artemis/               /Artemis, the project page for Artemis (GPU regression detector) and GPUBridge
 src/data/site.ts         ALL copy: profile, flight log, ventures, projects, wrestling, layover, skills, nav, recruiter view
-src/data/artemis.ts      copy for /Artemis, including every result and how it was measured
+src/data/artemis.ts      copy for /Artemis, including every result and what it was measured on
 src/data/countries.json  the 23 visited countries (slug, ISO, flag, region, atlas id)
 src/data/*.generated.json  built by scripts, do not edit by hand
 src/lib/audio-cues.ts    where the song starts and where the buzzer lands
@@ -71,24 +71,42 @@ come from `simple-icons`, mapped by skill name in `recruiter/icons.tsx`.
 
 ### Artemis
 
-`/Artemis/` is the page for the GPU venture: the runtime straggler detector
-and GPUBridge, written for YC, investors and design partners. Like the
-recruiter view it sits outside `(experience)` and has its own look: flight-test
-paper (bone, ink, hairlines, a dot grid) with one signal red that only ever
-marks the straggler. Archivo, set wide, for type and Martian Mono for
-readouts, loaded on that page only. Its colours are the `--ar-*` variables at
-the bottom of `globals.css`.
+`/Artemis/` is the project page for Artemis, a runtime detector for GPU
+performance regressions in distributed training, and GPUBridge, the
+open-source layer that runs NVIDIA and AMD GPUs in one PyTorch job. It is
+written for AI-infrastructure engineers and managers, and asks them for
+technical feedback. David is the sole founder. Like the recruiter view it sits
+outside `(experience)` and has its own look: an instrument panel at night,
+graphite with hairlines and a faint grid. Three colours each mean one thing:
+red-orange is the regression, blue is GPUBridge's training data and aqua is
+the detector's own telemetry and control channel. They pass the data-viz
+palette checks against the background. Archivo, set wide, for type and Martian
+Mono for readouts, loaded on that page only. Its colours are the `--ar-*`
+variables at the bottom of `globals.css`.
 
-The hero strip (`artemis/Lanes.tsx`) is drawn on the server from a seeded
-loop of eight ranks, so it is the same for every visitor, and slid by CSS;
-reduced motion gets the still frame. The only client code is the cost
-calculator and the copy-email button.
+The sections follow the build: the problem, how it came together, GPUBridge,
+the two transport channels, the detector, evidence, the research that comes
+next, the founder and a feedback invitation. The hero strip
+(`artemis/Lanes.tsx`, inside `HeroFigure.tsx`) shows eight seeded ranks with
+one regressed. Its first frame is rendered on the server, then a
+requestAnimationFrame loop scrolls it. Its Rebalance button animates the
+plan in: rank 2 gets fewer samples and the rest more, the global batch stays
+256, and the wait at each all-reduce closes. The readout's step-time change
+is computed from the same numbers the strip draws. The GPUBridge diagram has
+a wide and a stacked version. The detector's architecture is HTML, so it
+reflows on a phone. The other client code is the section index
+(`SectionNav.tsx`), the regression chart (`RegressionChart.tsx`: measured in
+pixels so its labels stay legible, with a crosshair on hover, touch and arrow
+keys, plus a table view) and the copy-email button. Under reduced motion every
+animation stops, and Rebalance switches at once.
 
-All copy is in `src/data/artemis.ts`. Each evidence row carries a `kind`
-(`gpu`, `sim`, `cpu`, `wip`) and an optional `early` flag for small samples,
-shown as badges, so a simulated number never reads as a hardware one. When
-the project's benchmark or validation docs change, change the row with them.
-Founder photos are in `public/team/`. A `public/artemis/` folder would land in the same directory as the route on a case-insensitive disk.
+All copy is in `src/data/artemis.ts`. Each number names the hardware and
+setup it came from. GPUBridge's come from its public docs; the detector's
+source is private, so the page never links to it. When those docs change,
+change the copy with them. The share card is built by `npm run og:artemis`
+(`scripts/build-artemis-og.mjs`). The founder photo is in `public/team/`,
+because a `public/artemis/` folder would land in the same directory as the
+route on a case-insensitive disk.
 
 GitHub Pages paths are case-sensitive, so `/artemis` would miss; the 404
 page sends any casing of it to `/Artemis/`.
