@@ -32,7 +32,10 @@ export function Footer() {
   return (
     <footer className="border-t border-ar-line">
       <Container className="flex flex-col gap-5 py-8 text-[12px] text-ar-faint sm:flex-row sm:items-center sm:justify-between">
-        <p>© {new Date().getFullYear()} Artemis · Founded by {artemis.founder}</p>
+        <div className="space-y-1.5">
+          <p className="text-ar-muted">Artemis — performance diagnosis and recovery for distributed AI training.</p>
+          <p>© {new Date().getFullYear()} Artemis · Founded by {artemis.founder}</p>
+        </div>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3">
           <Link href="/Artemis/product/" className="hover:text-ar-fg">Product</Link>
           <a href={artemis.github} className="hover:text-ar-fg">GPUBridge ↗</a>
