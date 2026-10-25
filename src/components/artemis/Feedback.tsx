@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { artemis, mailto } from "@/data/artemis";
 import CopyEmail from "@/components/recruiter/CopyEmail";
 import { Arrow, Container, Eyebrow, button } from "./bits";
-import Mark from "./Mark";
 
 const { feedback } = artemis;
 
@@ -52,36 +50,5 @@ export default function Feedback() {
         </div>
       </Container>
     </section>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer className="border-t border-ar-line text-ar-faint">
-      <Container className="flex flex-col gap-6 py-10 text-[13px] md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3 text-ar-fg">
-          <Mark size={22} />
-          <span className="ar-wide text-[13px] font-semibold tracking-[0.16em]">ARTEMIS</span>
-          <span className="text-ar-faint">© {new Date().getFullYear()} {artemis.founder}</span>
-        </div>
-        <ul className="flex flex-wrap gap-x-6 gap-y-2">
-          <li>
-            <a href={artemis.github} className="transition-colors hover:text-ar-fg">
-              GPUBridge
-            </a>
-          </li>
-          <li>
-            <Link href="/recruiter/" className="transition-colors hover:text-ar-fg">
-              {"David's résumé"}
-            </Link>
-          </li>
-          <li>
-            <Link href="/" className="transition-colors hover:text-ar-fg">
-              davidczartoryski.com
-            </Link>
-          </li>
-        </ul>
-      </Container>
-    </footer>
   );
 }

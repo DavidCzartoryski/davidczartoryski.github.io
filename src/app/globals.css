@@ -437,12 +437,8 @@ html:has(.recruiter) {
   --ar-ctl-ink: #2fc28c;
   font-family: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
   background-color: var(--ar-bg);
-  background-image:
-    radial-gradient(1100px 520px at 72% -120px, rgb(238 92 54 / 0.09), transparent 70%),
-    linear-gradient(rgb(237 236 231 / 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(237 236 231 / 0.028) 1px, transparent 1px);
-  background-size: auto, 40px 40px, 40px 40px;
-  background-repeat: no-repeat, repeat, repeat;
+  background-image: radial-gradient(1100px 520px at 72% -120px, rgb(238 92 54 / 0.06), transparent 70%);
+  background-repeat: no-repeat;
   color: var(--ar-fg);
   -webkit-font-smoothing: antialiased;
 }
