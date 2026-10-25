@@ -1,5 +1,5 @@
 // Draws the /Artemis share card: the crescent mark and wordmark, the hero line
-// and a simple detect → diagnose → resolve → verify workflow. Writes
+// and the detect → confirm → localize → act → verify loop. Writes
 // src/app/Artemis/opengraph-image.png and twitter-image.png (1200x630) and
 // their .alt.txt files.
 //
@@ -20,7 +20,7 @@ const ROOT = new URL("../", import.meta.url).pathname;
 const OUT = `${ROOT}src/app/Artemis`;
 const W = 1200, H = 630;
 const ALT =
-  "Artemis: an autonomous performance engineer for distributed AI training. Less GPU time wasted. Less engineering time spent chasing slowdowns. Product workflow in development: Detect, Diagnose, Resolve, Verify.";
+  "Artemis: one slow GPU slows your whole training job. Artemis finds it and fixes it. Detect, confirm, localize, act, verify, while the job runs. In development, for NVIDIA and AMD, on owned or rented clusters.";
 
 const FONT_URLS = {
   archivo: "https://raw.githubusercontent.com/google/fonts/main/ofl/archivo/Archivo%5Bwdth,wght%5D.ttf",
@@ -76,7 +76,8 @@ try {
 
 // ── Card ─────────────────────────────────────────────────────────────────────
 function card() {
-  const steps = ["Detect", "Diagnose", "Resolve", "Verify"];
+  const steps = ["Detect", "Confirm", "Localize", "Act", "Verify"];
+  const gap = 228;
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -88,16 +89,16 @@ function card() {
     <circle cx="21" cy="13" r="3.2" fill="#EE5C36"/>
   </g>
   <text x="118" y="78" font-family="AR Wide" font-size="22" letter-spacing="3.52" fill="#EDECE7">ARTEMIS</text>
-  <g font-family="AR Display" font-size="60" letter-spacing="-1.5" fill="#EDECE7">
-    <text x="62" y="198">An autonomous performance</text>
-    <text x="62" y="270">engineer for</text>
-    <text x="62" y="342" fill="#FF7A57">distributed AI training.</text>
+  <g font-family="AR Display" font-size="58" letter-spacing="-1.4" fill="#EDECE7">
+    <text x="62" y="198">One slow GPU slows your</text>
+    <text x="62" y="268">whole training job.</text>
+    <text x="62" y="338" fill="#FF7A57">Artemis finds it and fixes it.</text>
   </g>
   <g font-family="AR Display" font-size="23" fill="#A9A8A2">
-    <text x="64" y="402">Less GPU time wasted. Less time chasing slowdowns.</text>
+    <text x="64" y="400">Found while the job runs. Fixed within your policies.</text>
   </g>
   <line x1="64" y1="458" x2="1136" y2="458" stroke="#EDECE7" stroke-opacity="0.17"/>
-  ${steps.map((step, i) => `<circle cx="${76+i*275}" cy="502" r="5" fill="${i===0?'#EE5C36':i===3?'#2FC28C':'#EDECE7'}"/><text x="${94+i*275}" y="510" font-family="AR Display" font-size="23" fill="#EDECE7">${step}</text>${i<3?`<text x="${280+i*275}" y="510" font-family="AR Mono" font-size="20" fill="#8C8B85">→</text>`:''}`).join('')}
-  <text x="64" y="575" font-family="AR Mono" font-size="13" letter-spacing="1" fill="#8C8B85">PRODUCT VISION · IN DEVELOPMENT</text>
+  ${steps.map((step, i) => `<circle cx="${76+i*gap}" cy="502" r="5" fill="${i===0?'#EE5C36':i===steps.length-1?'#2FC28C':'#EDECE7'}"/><text x="${94+i*gap}" y="510" font-family="AR Display" font-size="23" fill="#EDECE7">${step}</text>${i<steps.length-1?`<text x="${236+i*gap}" y="510" font-family="AR Mono" font-size="20" fill="#8C8B85">→</text>`:''}`).join('')}
+  <text x="64" y="575" font-family="AR Mono" font-size="13" letter-spacing="1" fill="#8C8B85">IN DEVELOPMENT · NVIDIA AND AMD · OWNED OR RENTED CLUSTERS</text>
 </svg>`;
 }

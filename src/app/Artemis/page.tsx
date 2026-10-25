@@ -5,9 +5,9 @@ import Header, { Footer } from "@/components/artemis/Header";
 import Hero from "@/components/artemis/Hero";
 import Homepage from "@/components/artemis/Homepage";
 
-const TITLE = `${artemis.name} · Your autonomous performance engineer`;
+const TITLE = `${artemis.name} — Find and fix the GPU slowing your training job`;
 const DESCRIPTION =
-  "An autonomous performance engineer for distributed AI training. Artemis is being built to reduce wasted GPU time and the engineering effort spent finding and fixing slowdowns.";
+  "Artemis monitors distributed AI training while it runs, pinpoints the slow GPU, link, or host, fixes it within your policies, and verifies throughput recovered. For AI infrastructure teams, across NVIDIA and AMD, on owned or rented clusters.";
 
 export const metadata: Metadata = {
   title: TITLE,

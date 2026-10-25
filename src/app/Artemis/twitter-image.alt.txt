@@ -1,1 +1,1 @@
-Artemis: an autonomous performance engineer for distributed AI training. Less GPU time wasted. Less engineering time spent chasing slowdowns. Product workflow in development: Detect, Diagnose, Resolve, Verify.
+Artemis: one slow GPU slows your whole training job. Artemis finds it and fixes it. Detect, confirm, localize, act, verify, while the job runs. In development, for NVIDIA and AMD, on owned or rented clusters.

@@ -69,7 +69,7 @@ function Readout({ balanced, touched }: { balanced: boolean; touched: boolean })
 }
 
 /** The hero's strip with the one action Artemis can take on it: rebalance, then put it back. */
-export default function HeroFigure() {
+export default function HeroFigure({ caption = hero.caption }: { caption?: string }) {
   const [balanced, setBalanced] = useState(false);
   const [touched, setTouched] = useState(false);
 
@@ -124,7 +124,7 @@ export default function HeroFigure() {
       <figcaption className="mt-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-8">
         <LanesLegend />
         <p className="max-w-[480px] text-[13px] leading-relaxed text-ar-faint md:text-right" aria-live="polite">
-          {balanced ? hero.captionBalanced : hero.caption}
+          {balanced ? hero.captionBalanced : caption}
         </p>
       </figcaption>
     </figure>
