@@ -104,6 +104,23 @@ collisions with `/Artemis/`.
 GitHub Pages paths are case-sensitive, so `/artemis` would miss; the 404
 page sends any casing of it to `/Artemis/`.
 
+`/Artemis/Demo/` serves the standalone clickable fleet demo from
+`public/Artemis/Demo/`. It is a frozen, simulated snapshot: no live hardware,
+actions, sign-in, or visitor/click recording. The files use relative asset URLs
+and hash navigation, so GitHub Pages can serve the whole walkthrough without
+an API or additional routing. The case-sensitive public entry point is
+`https://davidczartoryski.com/Artemis/Demo` (Pages adds the trailing slash).
+
+To refresh it from the canonical Artemis checkout, run:
+
+```sh
+cd ~/code/straggler-detector
+.venv/bin/python -m straggler.fleet.demo export --target static --out ~/code/david-portfolio/public/Artemis/Demo
+```
+
+Then build and publish this website as usual. Do not copy the private source,
+raw hardware evidence, Vercel functions, or credentials into the public site.
+
 ### The intro and the song
 
 `public/audio/theme.mp3` is the theme song. Playback starts at `SONG_START`

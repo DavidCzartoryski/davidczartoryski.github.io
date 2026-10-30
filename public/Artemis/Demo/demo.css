@@ -1,0 +1,30 @@
+/* The demo layer's own styles, on top of step 2.6's ui/app.css (loaded first, unchanged). */
+.demo-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px;
+  background: #fff3bf; color: #5c3c00; font-size: .75rem; vertical-align: 2px; }
+.demo-note { max-width: 1200px; margin: 0 auto; padding: 8px 16px 0; }
+.demo-note:empty { display: none; }
+.demo-card { border-color: #f0c040; background: #fffbea; }
+.demo-card p { margin: .35rem 0; }
+.demo-write { color: #5c3c00; font-weight: 600; }
+.demo-bar { position: sticky; bottom: 0; z-index: 9; display: flex; flex-wrap: wrap;
+  align-items: center; gap: 8px; padding: 8px 16px; background: #1d2330; color: #fff;
+  border-top: 2px solid #f0c040; }
+.demo-step { flex: 1 1 14rem; font-size: .9rem; }
+.demo-done { font-weight: 600; padding: 0 6px; }
+.demo-bar button { min-width: 44px; }
+.demo-bar a.demo-about { color: #dfe6f3; display: inline-flex; align-items: center; min-height: 44px;
+  padding: 0 8px; }
+/* Scrolled-to headings and cards clear the sticky banner. */
+#view h2, #view .card { scroll-margin-top: 6rem; }
+.noscript { padding: 16px; }
+@media (max-width: 700px) {
+  .demo-note { padding: 6px 10px 0; }
+  .demo-bar { padding: 6px 10px; gap: 6px; }
+  .demo-step { flex-basis: 100%; font-size: .82rem; }
+  .demo-bar button { flex: 1 1 auto; }
+}
+.foot p { margin: .3rem 0; }
+.disclosure[hidden] { display: none; }
+/* The recording line on the first screen, under the banner (shown only when recording). */
+.disclosure-top { max-width: 1200px; margin: 0 auto; padding: 6px 16px 0; font-size: .85rem; color: var(--muted); }
+@media (max-width: 700px) { .disclosure-top { padding: 4px 10px 0; font-size: .8rem; } }

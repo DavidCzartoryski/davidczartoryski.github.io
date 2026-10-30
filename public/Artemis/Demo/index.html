@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="same-origin">
+<title>Artemis fleet: clickable demo (simulated)</title>
+<link rel="stylesheet" href="ui/app.css">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<div id="banner" class="banner" role="status">Simulated fleet: no real hardware, cordon, restart or recovery.</div>
+<p id="disclosure-top" class="disclosure disclosure-top" hidden>This demo records visits and clicks (IP address, approximate location, browser, pages viewed) to learn how it is used.</p>
+<header class="top">
+  <a class="brand" href="#/fleet">Artemis fleet <span class="demo-tag">demo</span></a>
+  <nav class="nav" aria-label="Views">
+    <a href="#/fleet">Fleet</a>
+    <a href="#/alerts">Alerts</a>
+    <a href="#/tickets">Tickets</a>
+    <a href="#/approvals">Approvals</a>
+    <a href="#/about">About</a>
+  </nav>
+</header>
+<section id="demo-note" class="demo-note" aria-live="polite"></section>
+<main id="view" class="view" aria-live="polite"><p class="muted">Loading the simulated demo data…</p></main>
+<footer class="foot">
+  <p>Diagnoses are made by the rule ranking; the model runs in shadow and does not act. No probabilities or confidence are shown.</p>
+  <p id="disclosure" class="disclosure" hidden>This demo records visits and clicks (IP address, approximate location, browser, pages viewed) to learn how it is used.</p>
+</footer>
+<div id="demo-bar" class="demo-bar" role="region" aria-label="Guided demo"></div>
+<noscript><p class="noscript">This demo needs JavaScript. Everything in it is simulated.</p></noscript>
+<script src="demo-data.js"></script>
+<script src="demo-config.js"></script>
+<script src="demo-events.js"></script>
+<script src="demo.js"></script>
+<script src="ui/app.js"></script>
+</body>
+</html>
