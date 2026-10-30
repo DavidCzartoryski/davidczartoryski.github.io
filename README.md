@@ -104,11 +104,14 @@ collisions with `/Artemis/`.
 GitHub Pages paths are case-sensitive, so `/artemis` would miss; the 404
 page sends any casing of it to `/Artemis/`.
 
-`/Artemis/Demo/` serves the standalone clickable fleet demo from
-`public/Artemis/Demo/`. It is a frozen, simulated snapshot: no live hardware,
-actions, sign-in, or visitor/click recording. The files use relative asset URLs
-and hash navigation, so GitHub Pages can serve the whole walkthrough without
-an API or additional routing. The case-sensitive public entry point is
+`/Artemis/Demo/` serves the standalone fleet demo from `public/Artemis/Demo/`.
+It plays one simulated day of an Artemis fleet of 192 A100 GPUs running 8
+training jobs, all from a single clock, so the overview, job charts, racks
+and incidents always agree. A guided story walks through a GPU failure, a hot
+GPU, a slow input loader and a switch failure. Everything is simulated: it
+touches no live hardware, sends no network requests and records no visits or
+clicks. The files use relative URLs and hash navigation, so GitHub Pages
+serves it with no API or extra routing. The case-sensitive public entry point is
 `https://davidczartoryski.com/Artemis/Demo` (Pages adds the trailing slash).
 
 To refresh it from the canonical Artemis checkout, run:
