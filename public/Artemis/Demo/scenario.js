@@ -108,6 +108,30 @@
     }
   }
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const and = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
+  // A paused-draining ticket's why is the policy's reasons for each node it did not drain,
+  // one after another. Read it into a short summary (what is blocked, why, what a person
+  // decides) and the reasons per node; null when it does not read that way.
+  function breakerBrief(tk) {
+    const why = (tk && tk.why) || "";
+    const nodes = [];
+    const re = /cordon of (\S+) not run: (.*?)(?=; cordon of |$)/g;
+    for (let m = re.exec(why); m; m = re.exec(why)) nodes.push({ host: short(m[1]), reasons: m[2].split("; ") });
+    if (!nodes.length) return null;
+    const hosts = nodes.map((n) => n.host);
+    const leaves = (tk.components || []).filter((c) => /^leaf:/.test(c)).map(short);
+    const lim = /circuit breaker open: (\d+) automatically cordoned node\(s\) would exceed ([\d.]+)% of (\d+) nodes/.exec(why);
+    const weak = nodes.every((n) => n.reasons.some((r) => /^no fresh definitive or strong signal/.test(r)));
+    const them = nodes.length === 1 ? "it" : "them";
+    const blocked = "Artemis did not drain " + and(hosts) + (leaves.length ? ", the nodes behind switch " + and(leaves) : "") + ".";
+    const why1 = (lim ? "Draining " + them + " would bring the nodes Artemis drained on its own to " + lim[1] +
+      ", over its limit of " + lim[2] + "% of the fleet's " + lim[3] + " nodes, so it stopped and asked for a review." : "A safety limit stopped it.") +
+      (weak ? " No node shows a strong sign of a fault of its own." : "");
+    const step = (tk.steps || []).find((x) => x.fix === "cordon_node");
+    const decide = "A person decides whether to drain " + them + " by hand" +
+      (step && /until the switch is restored/.test(step.text) && leaves.length ? " until switch " + and(leaves) + " is back" : "") + ".";
+    return { blocked, why: why1, decide, nodes };
+  }
 
   function build(data) {
     const seed = hashStr("artemis-demo-" + String((data.about && data.about.seed) || 0));
@@ -248,7 +272,8 @@
       const tickets = (acts.tickets || []).map((tid) => {
         const tk = ticketsById[tid];
         const r = rowFor("ticket", (x) => x.indexOf(tid + " ") === 0);
-        return { id: tid, kind: tk ? tk.kind : null, title: tk ? tk.title : tid, tShow: r ? r.tShow : (tk ? tk.opened_t : tDiag), ticket: tk };
+        return { id: tid, kind: tk ? tk.kind : null, title: tk ? tk.title : tid, tShow: r ? r.tShow : (tk ? tk.opened_t : tDiag), ticket: tk,
+          brief: tk && tk.kind === "breaker" ? breakerBrief(tk) : null };
       });
       const recoverRow = rows.find((r) => r.stage === "recover");
       const breakerRow = rows.find((r) => r.stage === "breaker");

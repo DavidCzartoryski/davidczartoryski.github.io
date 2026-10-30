@@ -32,14 +32,13 @@
 
   const S = root.ArtemisScenario.build(DATA);
   const hhmm = S.hhmm;
-  const short = S.short;
   const mq = (q) => !!(root.matchMedia && root.matchMedia(q).matches);
   const phoneQuery = root.matchMedia ? root.matchMedia("(max-width: 720px)") : null;
   const phone = () => !!(phoneQuery && phoneQuery.matches);
   const reduced = mq("(prefers-reduced-motion: reduce)");
 
   function track(name, extra) {
-    try { if (root.ArtemisEvents) root.ArtemisEvents.send(name, extra); } catch (e) { /* never breaks the page */ }
+    try { if (root.ArtemisEvents) root.ArtemisEvents.send(name, extra); } catch { /* never breaks the page */ }
   }
   const recording = () => !!(root.ArtemisEvents && root.ArtemisEvents.on);
 
@@ -231,6 +230,12 @@
     clock.t = Math.max(S.start, Math.min(S.end, t));
     paint();
   }
+  // Pause and move in one paint, so nothing drawn for the old moment clears a selection made
+  // for the new one.
+  function pauseAt(t) {
+    clock.playing = false;
+    setTime(t);
+  }
   function replay() {
     track("step_reset");
     clock.t = S.start;
@@ -397,7 +402,7 @@
     append(box, [head, legend, plot, pick, note]);
     const btns = new Map();   // first event's key -> its target
     const groups = new Map(); // first event's key -> the events the target holds now
-    let picked = null, pickedT = null, opened = null, pickShown = "", drawnFirst = false;
+    let picked = null, pickedT = null, opened = null, pickShown = "", drawnAt = null;
     mkBar.addEventListener("keydown", (e) => {
       const list = Array.from(mkBar.children);
       const i = list.indexOf(doc.activeElement);
@@ -429,10 +434,9 @@
     }
     function choose(m) {
       picked = m.key;
-      pickedT = m.t;
+      pickedT = Math.max(S.start, Math.min(S.end, m.t));
       opened = null;
-      if (clock.playing) setPlaying(false);
-      setTime(m.t);
+      pauseAt(m.t);
       drawPick();
       syncPressed();
     }
@@ -500,7 +504,8 @@
           mkBar.insertBefore(b, after || null);
           btns.set(m.key, b);
           b.setAttribute("data-t", String(m.t));
-          if (drawnFirst) flash(b);
+          // Emphasis only for an event the clock just reached, not for one a wider range shows.
+          if (drawnAt !== null && m.t > drawnAt) flash(b);
         }
         const tone = g.ms.some((e) => e.tone === "signal") ? "signal" : m.tone;
         setClass(b, "mk-b " + tone + (many ? " many" : "") + (b.classList.contains("picked") ? " picked" : "") + (b.classList.contains("changed") ? " changed" : ""));
@@ -519,7 +524,7 @@
         const to = btns.get(groupKeyOf(was));
         if (to) to.focus({ preventScroll: true });
       }
-      drawnFirst = true;
+      drawnAt = now;
       const kids = Array.from(mkBar.children);
       if (kids.length && !kids.some((c) => c.tabIndex === 0)) {
         const start = kids.find((c) => c.classList.contains("picked")) || kids[kids.length - 1];
@@ -1765,12 +1770,17 @@
           h("div", { class: "row inc-card", style: null },
             h("div", { class: "job-head" }, h("span", { class: "health person" }, kindWord(T.kind)), h("span", { class: "label" }, "opened " + hhmm(tk.tShow) + " · " + tk.id)),
             h("h3", null, "A person needs to " + tk.words),
-            h("p", { class: "muted" }, T.why || ""),
+            // A paused-draining ticket leads with a summary; its per-node reasons sit below.
+            tk.brief ? null : h("p", { class: "muted" }, T.why || ""),
             h("dl", { class: "kv" },
+              tk.brief ? [h("dt", null, "Blocked"), h("dd", null, tk.brief.blocked), h("dt", null, "Why"), h("dd", null, tk.brief.why),
+                h("dt", null, "To decide"), h("dd", null, tk.brief.decide)] : null,
               h("dt", null, "Who"), h("dd", null, ri.human_role || "a person"),
               h("dt", null, "GPU-hours lost"), h("dd", { class: "num" }, ri.gpu_hours_lost === undefined ? "none" : String(ri.gpu_hours_lost)),
               h("dt", null, "Jobs"), h("dd", null, ((T.jobs || []).length ? T.jobs.map((j) => S.jobName[S.short(j)] || j) : inc ? inc.jobs.map((j) => S.jobName[j]) : []).join(", ") || "none"),
               T.post_repair_check ? [h("dt", null, "Check after the repair"), h("dd", { class: "cmd" }, T.post_repair_check.command)] : null),
+            tk.brief ? h("details", { "data-key": "why-" + tk.id }, h("summary", null, "The reasons Artemis recorded, node by node"),
+              h("ul", { class: "checks" }, tk.brief.nodes.map((n) => h("li", null, h("span", { class: "res-other" }, n.host), h("span", null, n.reasons.join("; ")))))) : null,
             (T.steps || []).length ? h("details", { "data-key": "steps-" + tk.id, open: sel === tk.id ? true : null }, h("summary", null, "Steps for a person"),
               h("ul", { class: "checks" }, T.steps.map((s) => h("li", null, h("span", { class: "res-other" }, s.tier.replace(/_/g, " ")), h("span", null, S.fixWords(s.fix) + ". " + s.text))))) : null,
             (T.inspection || []).length ? h("details", { "data-key": "insp-" + tk.id }, h("summary", null, "What to inspect"),
@@ -1854,7 +1864,7 @@
   // ---- Router.
   const NAV = { fleet: "fleet", job: "fleet", incident: "fleet", node: "fleet", tickets: "tickets", activity: "activity", about: "about" };
   function parse(hash) {
-    const parts = (hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map((p) => { try { return decodeURIComponent(p); } catch (e) { return p; } });
+    const parts = (hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map((p) => { try { return decodeURIComponent(p); } catch { return p; } });
     if (!parts.length) return null;
     const name = parts[0];
     if (!own(VIEWS, name)) return { name: "missing", args: [], key: hash, nav: null };
