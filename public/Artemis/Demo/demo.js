@@ -478,17 +478,10 @@
       for (const [k, g] of groups) if (g.some((e) => e.key === eventKey)) return k;
       return null;
     }
-    function syncMarks(list, x, y0, now) {
+    function syncMarks(gs, y0, now) {
       const was = picked || opened, focusIn = pick.contains(doc.activeElement);
       // The note under the chart holds only while the clock stays on the chosen moment.
       if (picked && now !== pickedT) picked = null;
-      // Group the events by distance on this chart's width; a target keeps its first event's key.
-      const GAP = 28;
-      const gs = [];
-      for (const m of list) {
-        const mx = x(m.t), g = gs[gs.length - 1];
-        if (g && mx - g.x1 < GAP) { g.ms.push(m); g.x1 = mx; } else gs.push({ ms: [m], x0: mx, x1: mx });
-      }
       groups.clear();
       for (const g of gs) groups.set(g.ms[0].key, g.ms);
       if (opened) opened = groupKeyOf(opened);
@@ -552,15 +545,10 @@
       const x = (t) => ml + ((t - t0) / (t1 - t0)) * pw;
       const y = (v) => mt + (1 - (v - lo) / (hi - lo)) * ph;
       const kids = [];
-      for (const v of opts.ticks(lo, hi)) {
-        kids.push(sv("line", { class: "grid", x1: ml, x2: ml + pw, y1: y(v).toFixed(1), y2: y(v).toFixed(1) }));
-        kids.push(sv("text", { x: ml - 8, y: (y(v) + 3.5).toFixed(1), "text-anchor": "end" }, opts.fmtTick(v)));
-      }
-      for (const r of opts.refs ? opts.refs(st, data) : []) {
-        if (r.y < lo || r.y > hi) continue;
-        kids.push(sv("line", { class: "ref", x1: ml, x2: ml + pw, y1: y(r.y).toFixed(1), y2: y(r.y).toFixed(1) }));
-        kids.push(sv("text", { x: ml + pw - 4, y: (y(r.y) - 5).toFixed(1), "text-anchor": "end" }, r.label));
-      }
+      const ticks = opts.ticks(lo, hi);
+      for (const v of ticks) kids.push(sv("line", { class: "grid", x1: ml, x2: ml + pw, y1: y(v).toFixed(1), y2: y(v).toFixed(1) }));
+      const refs = (opts.refs ? opts.refs(st, data) : []).filter((r) => r.y >= lo && r.y <= hi);
+      for (const r of refs) kids.push(sv("line", { class: "ref", x1: ml, x2: ml + pw, y1: y(r.y).toFixed(1), y2: y(r.y).toFixed(1) }));
       // Time axis.
       kids.push(sv("line", { class: "axis", x1: ml, x2: ml + pw, y1: mt + ph, y2: mt + ph }));
       const spanS = t1 - t0;
@@ -569,8 +557,11 @@
         kids.push(sv("text", { x: x(tt).toFixed(1), y: mt + ph + 16, "text-anchor": "middle" }, hhmm(tt)));
       }
       if (now < t1) kids.push(sv("line", { class: "nowline", x1: x(now).toFixed(1), x2: x(now).toFixed(1), y1: mt - 4, y2: mt + ph }));
-      // Event markers. Labels go on up to three rows above the plot; a label that fits on
-      // no row is left out (its line stays, and the job's incident list names it).
+      // Event markers. Labels go on up to three rows above the plot, right of their line on
+      // any row, else left of it, at least LGAP apart. Problems and passed checks get a
+      // place first, then the rest in time order, "running again" last; a label that fits on
+      // no row is left out (its line and target stay, and the job's incident list names it).
+      const LGAP = 10;
       const taken = Array.from({ length: rows }, () => []);
       const shown = [];
       for (const m of opts.marks ? opts.marks(st) : []) {
@@ -578,14 +569,68 @@
         shown.push(m);
         const mx = x(m.t);
         kids.push(sv("line", { class: "mk " + m.tone, x1: mx.toFixed(1), x2: mx.toFixed(1), y1: mt - 4, y2: mt + ph }));
-        if (!m.label) continue;
-        const wl = m.label.length * 6.1 + 4;
-        const right = mx + 3 + wl <= ml + pw + mr - 4;
-        const a = right ? mx + 3 : mx - 3 - wl, b = right ? mx + 3 + wl : mx - 3;
-        const row = taken.findIndex((r) => r.every(([p, q]) => b < p || a > q));
-        if (row < 0) continue;
-        taken[row].push([a, b]);
-        kids.push(sv("text", { class: "mk-l " + m.tone, x: (right ? mx + 3 : mx - 3).toFixed(1), y: 10 + row * 11, "text-anchor": right ? "start" : "end", "aria-hidden": "true" }, m.label));
+      }
+      const rank = (m) => (m.tone === "signal" || m.label === "check passed" ? 0 : m.label === "running again" ? 2 : 1);
+      for (const m of shown.filter((x) => x.label).sort((a, b) => rank(a) - rank(b))) {
+        const mx = x(m.t);
+        const wl = textWidth(m.label);
+        const sides = [];
+        if (mx + 3 + wl <= ml + pw + mr - 4) sides.push(true);
+        if (mx - 3 - wl >= 0) sides.push(false);
+        let at = null;
+        for (const right of sides) {
+          for (let row = 0; row < rows && !at; row++) {
+            const a = right ? mx + 3 : mx - 3 - wl, b = right ? mx + 3 + wl : mx - 3;
+            if (taken[row].every(([p, q]) => b + LGAP <= p || a >= q + LGAP)) at = { row, right, a, b };
+          }
+          if (at) break;
+        }
+        if (!at) continue;
+        taken[at.row].push([at.a, at.b]);
+        kids.push(sv("text", { class: "mk-l " + m.tone, x: (at.right ? mx + 3 : mx - 3).toFixed(1), y: 10 + at.row * 11, "text-anchor": at.right ? "start" : "end", "aria-hidden": "true" }, m.label));
+      }
+      // Group the events by distance on this chart's width; one target per group. The
+      // targets, the marker lines and the current value are what the line labels avoid.
+      const gs = [];
+      for (const m of shown) {
+        const mx = x(m.t), g = gs[gs.length - 1];
+        if (g && mx - g.x1 < MK_GAP) { g.ms.push(m); g.x1 = mx; } else gs.push({ ms: [m], x0: mx, x1: mx });
+      }
+      const blocked = [];
+      for (const g of gs) {
+        blocked.push(g.ms.length > 1 ? [g.x0 - 10, g.x1 + 10, mt - 10, mt + 6] : [g.x0 - 4, g.x0 + 4, mt - 6, mt + 2]);
+        for (const m of g.ms) blocked.push([x(m.t) - 1, x(m.t) + 1, mt - 4, mt + ph]);
+      }
+      const hard = (bx) => blocked.every((o) => bx[1] + 3 <= o[0] || bx[0] >= o[1] + 3 || bx[3] + 1 <= o[2] || bx[2] >= o[3] + 1);
+      // Where the data lines run: the lowest and highest y they reach in each pixel column.
+      const colLo = new Float64Array(width + 2).fill(Infinity), colHi = new Float64Array(width + 2).fill(-Infinity);
+      for (const ln of data.lines) {
+        let prev = null;
+        for (const [t, v] of ln.points) {
+          if (v === null || v === undefined || !isFinite(v)) { prev = null; continue; }
+          const p1 = [x(t), y(v)], p0 = prev || p1;
+          const xa = Math.min(p0[0], p1[0]), xb = Math.max(p0[0], p1[0]);
+          const yAt = (u) => (xb === xa ? null : p0[1] + (p1[1] - p0[1]) * (clampN(u, xa, xb) - p0[0]) / (p1[0] - p0[0]));
+          for (let c = Math.max(0, Math.floor(xa)); c <= Math.min(width + 1, Math.floor(xb)); c++) {
+            const ya = xb === xa ? p0[1] : yAt(c), yb = xb === xa ? p1[1] : yAt(c + 1);
+            colLo[c] = Math.min(colLo[c], ya, yb);
+            colHi[c] = Math.max(colHi[c], ya, yb);
+          }
+          prev = p1;
+        }
+      }
+      const clear = (bx) => {
+        for (let c = Math.max(0, Math.floor(bx[0])); c <= Math.min(width + 1, Math.ceil(bx[1])); c++) if (colHi[c] >= bx[2] - 1 && colLo[c] <= bx[3] + 1) return false;
+        return true;
+      };
+      const free = (bx) => hard(bx) && clear(bx);
+      // A text box: [left, right, top, bottom] for a 10 px label at baseline yb.
+      const tbox = (a, w, yb) => [a, a + w, yb - 8, yb + 3];
+      // A value axis label under an event's target (an event at the window's left edge) is
+      // left out; its grid line stays.
+      for (const v of ticks) {
+        const label = opts.fmtTick(v), w = textWidth(label);
+        if (hard(tbox(ml - 8 - w, w, y(v) + 3.5))) kids.push(sv("text", { x: ml - 8, y: (y(v) + 3.5).toFixed(1), "text-anchor": "end" }, label));
       }
       // Lines: an underlay keeps highlighted lines readable over the others.
       for (const ln of data.lines) {
@@ -597,18 +642,51 @@
       if (data.cur && data.cur.v !== null && isFinite(data.cur.v) && now <= t1) {
         const cy = y(Math.max(lo, Math.min(hi, data.cur.v)));
         kids.push(sv("circle", { class: "cur" + (data.cur.tone ? " " + data.cur.tone : ""), cx: x(now).toFixed(1), cy: cy.toFixed(1), r: 4 }));
-        kids.push(sv("text", { class: "cur-l", x: (x(now) + 9).toFixed(1), y: (cy + 3.5).toFixed(1) }, data.cur.label));
+        blocked.push([x(now) - 5, x(now) + 5, cy - 5, cy + 5]);
+        // Beside the dot, else just below or above it.
+        const w = textWidth(data.cur.label), cx = x(now) + 9;
+        const yb = [cy + 3.5, cy + 15, cy - 8].find((v) => hard(tbox(cx, w, v))) || cy + 3.5;
+        blocked.push(tbox(cx, w, yb));
+        kids.push(sv("text", { class: "cur-l", x: cx.toFixed(1), y: yb.toFixed(1) }, data.cur.label));
+      }
+      // Each reference line's label: at the right end above the line, else below it, else
+      // further left, wherever no marker, target, value or data line covers it.
+      for (const r of refs) {
+        const w = textWidth(r.label), ry = y(r.y);
+        const spots = [];
+        for (let right = ml + pw - 4; right - w >= ml + 4; right -= 8) for (const yb of [ry - 5, ry + 12]) if (yb - 8 >= mt - 14 && yb + 3 <= mt + ph) spots.push([right - w, yb]);
+        const at = spots.find(([a, yb]) => free(tbox(a, w, yb))) || spots.find(([a, yb]) => hard(tbox(a, w, yb))) || [ml + pw - 4 - w, ry - 5];
+        blocked.push(tbox(at[0], w, at[1]));
+        kids.push(sv("text", { class: "ref-l", x: (at[0] + w).toFixed(1), y: at[1].toFixed(1), "text-anchor": "end" }, r.label));
       }
       svg.setAttribute("width", width);
       svg.setAttribute("height", height);
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
       svg.replaceChildren(...kids);
-      syncMarks(shown, x, mt, st.t);
+      syncMarks(gs, mt, st.t);
       setText(headNow, data.now || "");
       setAttr(svg, "aria-label", opts.title + ". " + (data.aria || data.now || "") + " Time from " + hhmm(t0) + " to " + hhmm(t1) + " UTC, simulated.");
     }
     return { el: box, update };
   }
+  // Chart labels are 10 px Martian Mono, one advance per character. Measured once the fonts
+  // have loaded (an estimate until then).
+  let monoAdvance = null;
+  function textWidth(s) {
+    if (monoAdvance === null && doc.fonts && doc.fonts.status === "loaded") {
+      const probe = sv("svg", { class: "chart-probe", width: 0, height: 0, "aria-hidden": "true" }, sv("text", null, "0".repeat(20)));
+      const host = h("div", { class: "chart" }, probe);
+      host.style.position = "absolute";
+      host.style.visibility = "hidden";
+      doc.body.appendChild(host);
+      const len = probe.firstChild.getComputedTextLength();
+      host.remove();
+      if (len > 0) monoAdvance = len / 20;
+    }
+    return String(s).length * (monoAdvance || 6.6);
+  }
+  const MK_GAP = 28;
+  const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   function path(points, x, y) {
     let d = "", pen = false;
     for (const [t, v] of points) {
@@ -1056,7 +1134,11 @@
       setKpi(k.gpus, String(tt.gpus.training), "of " + tt.gpus.total, [tt.gpus.fixing ? tt.gpus.fixing + " restarting or checking" : "",
         tt.gpus.problem ? tt.gpus.problem + " with a problem" : "", tt.gpus.out ? tt.gpus.out + " out of service" : "", tt.gpus.idle + " idle"].filter(Boolean).join(", "));
       setKpi(k.pace, pct(tt.pace), "", "of normal", tt.pace < 0.97 ? "signal" : "");
-      setKpi(k.people, String(tt.forPeople), "", tt.forPeople ? tt.waiting + (tt.waiting === 1 ? " ticket, " : " tickets, ") + tt.approvals + (tt.approvals === 1 ? " fix needs" : " fixes need") + " approval" : "Nothing", tt.forPeople ? "signal" : "");
+      // The line under the number counts the same items, split by what a person does.
+      const pp = tt.people;
+      setKpi(k.people, String(tt.forPeople), "", tt.forPeople ? [pp.approve ? pp.approve + (pp.approve === 1 ? " fix" : " fixes") + " to approve" : "",
+        pp.repair ? pp.repair + (pp.repair === 1 ? " node" : " nodes") + " to repair" : "",
+        pp.review ? pp.review + " paused draining to review" : ""].filter(Boolean).join(", ") : "Nothing", tt.forPeople ? "signal" : "");
       attn.sync(st.attention);
       feed.sync(st.activity.slice(-6).reverse());
       const counts = { all: S.jobIds.length, attention: 0, healthy: 0 };
@@ -1215,7 +1297,7 @@
         return { lines: [{ points: S.series("imbalance", id, t0, t1, 60) }], cur: { v: js.imbalance, label: js.imbalance ? js.imbalance.toFixed(2) + "×" : "" },
           now: js.imbalance ? js.imbalance.toFixed(2) + "×" : "no steps completing" };
       },
-      domain: () => [0.95, 1.4], ticks: () => [1, 1.1, 1.2, 1.3], fmtTick: (v) => v.toFixed(1) + "×",
+      domain: () => [0.9, 1.4], ticks: () => [1, 1.1, 1.2, 1.3], fmtTick: (v) => v.toFixed(1) + "×",
       refs: () => [{ y: 1, label: "even" }],
     }));
     const hotRank = job.slowRank ? job.slowRank.rank : null;
@@ -1466,7 +1548,7 @@
     function paneKey(st, is) {
       const facts = inc.facts.filter((f) => f.first_seen <= st.t).length;
       const pend = inc.actions.filter((a) => a.tShow > st.t).length + inc.approvals.filter((a) => a.tShow > st.t).length;
-      if (tab === "evidence") return [is.diagnosed, facts].join(",");
+      if (tab === "evidence") return [is.diagnosed, facts, !!is.breaker].join(",");
       if (tab === "actions") return [is.diagnosed, is.actions.length, is.approvals.length, pend].join(",");
       if (tab === "record") return [is.diagnosed, is.rows.length].join(",");
       return [is.stage, st.activity.filter((e) => e.inc === iid).length, is.actions.length, is.approvals.length, is.verify.length,
@@ -1486,7 +1568,7 @@
       const rr = inc.doc.rule_ranking || {};
       out.appendChild(h("div", { class: "panel box" }, h("h3", null, "Diagnosis"),
         h("p", null, inc.policy === "none" ? "No known problem matches the evidence, so Artemis takes no action." : "Artemis's rule ranking picked: " + inc.words.text + "."),
-        inc.policy !== "none" ? h("p", { class: "muted" }, "It blames " + listWords(inc.components.map((c) => S.short(c))) + ". " + (rr.note ? "Why: " + rr.note + "." : "")) : null,
+        inc.policy !== "none" ? h("p", { class: "muted" }, "It blames " + listWords(inc.components.map((c) => S.short(c))) + "." + ruleWords(rr.note)) : null,
         inc.causeHypothesis && is.verify.length ? h("p", { class: "muted" }, "Node confirmed, not the cause: " + inc.causeNote + ".") :
           inc.policy !== "none" ? h("p", { class: "muted" }, "The cause stays a hypothesis. A recovery after a fix can confirm a node, never the cause.") : null,
         h("p", { class: "faint" }, "A scripted test model runs beside the rule ranking. It is not AI and does not act. ",
@@ -1505,11 +1587,20 @@
       }
       if (is.approvals.length || is.tickets.length || is.breaker) {
         out.appendChild(h("div", { class: "panel box" }, h("h3", null, "Work for people"),
-          is.breaker ? h("p", null, "Automatic draining is paused: " + (DATA.fleet.breaker ? DATA.fleet.breaker.why : "") + ".") : null,
+          is.breaker ? h("p", null, "Automatic draining is paused. " + (root.ArtemisScenario.limitWords(DATA.fleet.breaker && DATA.fleet.breaker.why,
+            "Draining " + (listWords(is.actions.filter((a) => a.status === "breaker_open").map((a) => S.short(a.target))) || "those nodes")) || "A safety limit stopped it, and a person reviews it.")) : null,
           is.approvals.map((a) => h("p", null, S.fixPhrase(a.fix, a.targets).replace(/^./, (c) => c.toUpperCase()) + " waits for approval.")),
           is.tickets.map((tk) => h("p", null, h("a", { href: "#/tickets/" + tk.id, "data-key": "tk-" + tk.id }, "Ticket: " + S.ticketWords(tk.ticket))))));
       }
       return out;
+    }
+    // The rule ranking's note ("fabric.switch_failure: 3 suggesting condition(s) met, nothing
+    // against") in words; the note itself is on the Evidence tab.
+    function ruleWords(note) {
+      const m = /: (\d+) suggesting condition\(s\) met, nothing against$/.exec(note || "");
+      if (!m) return "";
+      return m[1] === "1" ? " 1 sign in the evidence points to it, and none points against it." :
+        " " + m[1] + " signs in the evidence point to it, and none point against it.";
     }
     function actionWord(a) {
       return { done: "done, simulated", simulated: "recorded, simulated, nothing sent", breaker_open: "not done, safety limit" }[a.status] || a.status;
@@ -1573,6 +1664,8 @@
       const reports = inc.doc.policy_reports || [];
       out.appendChild(h("div", { class: "panel box" }, h("h3", null, "Policies Artemis scored"),
         h("p", { class: "muted" }, (inc.doc.rule_ranking && inc.doc.rule_ranking.rule) ? "Ranking rule: " + inc.doc.rule_ranking.rule + "." : ""),
+        inc.doc.rule_ranking && inc.doc.rule_ranking.note ? h("p", { class: "muted" }, "Rule note, as recorded: " + inc.doc.rule_ranking.note + ".") : null,
+        is.breaker && DATA.fleet.breaker ? h("p", { class: "muted" }, "Safety limit, as recorded: " + DATA.fleet.breaker.why + ".") : null,
         h("div", { class: "table-wrap" }, h("table", { class: "policies" },
           h("thead", null, h("tr", null, ["Policy", "Status", "Conditions met", "Missing"].map((x) => h("th", { class: "label", scope: "col" }, x)))),
           h("tbody", null, reports.map((r) => h("tr", { class: r.policy === inc.policy ? "chosen" : null },
@@ -1770,7 +1863,7 @@
           h("div", { class: "row inc-card", style: null },
             h("div", { class: "job-head" }, h("span", { class: "health person" }, kindWord(T.kind)), h("span", { class: "label" }, "opened " + hhmm(tk.tShow) + " · " + tk.id)),
             h("h3", null, "A person needs to " + tk.words),
-            // A paused-draining ticket leads with a summary; its per-node reasons sit below.
+            // Every ticket leads with a summary; the text Artemis recorded sits below.
             tk.brief ? null : h("p", { class: "muted" }, T.why || ""),
             h("dl", { class: "kv" },
               tk.brief ? [h("dt", null, "Blocked"), h("dd", null, tk.brief.blocked), h("dt", null, "Why"), h("dd", null, tk.brief.why),
@@ -1779,8 +1872,9 @@
               h("dt", null, "GPU-hours lost"), h("dd", { class: "num" }, ri.gpu_hours_lost === undefined ? "none" : String(ri.gpu_hours_lost)),
               h("dt", null, "Jobs"), h("dd", null, ((T.jobs || []).length ? T.jobs.map((j) => S.jobName[S.short(j)] || j) : inc ? inc.jobs.map((j) => S.jobName[j]) : []).join(", ") || "none"),
               T.post_repair_check ? [h("dt", null, "Check after the repair"), h("dd", { class: "cmd" }, T.post_repair_check.command)] : null),
-            tk.brief ? h("details", { "data-key": "why-" + tk.id }, h("summary", null, "The reasons Artemis recorded, node by node"),
-              h("ul", { class: "checks" }, tk.brief.nodes.map((n) => h("li", null, h("span", { class: "res-other" }, n.host), h("span", null, n.reasons.join("; ")))))) : null,
+            tk.brief && tk.brief.nodes ? h("details", { "data-key": "why-" + tk.id }, h("summary", null, "The reasons Artemis recorded, node by node"),
+              h("ul", { class: "checks" }, tk.brief.nodes.map((n) => h("li", null, h("span", { class: "res-other" }, n.host), h("span", null, n.reasons.join("; ")))))) :
+              tk.brief ? h("details", { "data-key": "why-" + tk.id }, h("summary", null, "The reason Artemis recorded"), h("p", { class: "cmd faint" }, T.why || "")) : null,
             (T.steps || []).length ? h("details", { "data-key": "steps-" + tk.id, open: sel === tk.id ? true : null }, h("summary", null, "Steps for a person"),
               h("ul", { class: "checks" }, T.steps.map((s) => h("li", null, h("span", { class: "res-other" }, s.tier.replace(/_/g, " ")), h("span", null, S.fixWords(s.fix) + ". " + s.text))))) : null,
             (T.inspection || []).length ? h("details", { "data-key": "insp-" + tk.id }, h("summary", null, "What to inspect"),

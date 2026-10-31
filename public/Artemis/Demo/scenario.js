@@ -112,6 +112,44 @@
   // A paused-draining ticket's why is the policy's reasons for each node it did not drain,
   // one after another. Read it into a short summary (what is blocked, why, what a person
   // decides) and the reasons per node; null when it does not read that way.
+  // The draining limit's recorded text ("5 automatically cordoned node(s) would exceed 5% of
+  // 24 nodes (1.2)") as a sentence that starts with `what` ("Draining them"); null when it
+  // does not read that way.
+  function limitWords(text, what) {
+    const lim = /(\d+) automatically cordoned node\(s\) would exceed ([\d.]+)% of (\d+) nodes/.exec(text || "");
+    return lim ? what + " would bring the nodes Artemis drained on its own to " + lim[1] +
+      ", over its limit of " + lim[2] + "% of the fleet's " + lim[3] + " nodes, so it stopped and asked for a review." : null;
+  }
+  // A node repair ticket's why is "host:<node> cordoned by Artemis for <policy>: <what
+  // releases it>". Read it, and the ticket's steps, into the same summary; null when it does
+  // not read that way.
+  function repairBrief(tk) {
+    const m = /^host:(\S+) cordoned by Artemis for (\S+): (.*)$/.exec((tk && tk.why) || "");
+    if (!m || !POLICY[m[2]]) return null;
+    const steps = tk.steps || [];
+    const asked = steps.filter((x) => x.tier === "approval").map((x) => fixWords(x.fix).toLowerCase());
+    const hands = steps.some((x) => x.tier === "human_only" && /recurs/.test(x.text));
+    return {
+      blocked: "Artemis drained node " + m[1] + ", so no new work lands on it.",
+      why: cap(POLICY[m[2]].text) + "." + (/repair/.test(m[3]) && /check/.test(m[3]) ? " The node stays drained until a person repairs it and the check after the repair passes." : ""),
+      decide: (asked.length ? "A person decides whether to " + and(asked) + "." : "A person repairs the node.") +
+        (hands ? " If the fault comes back, the steps for a person cover the hands-on repair." : ""),
+    };
+  }
+  // An approval ticket's why is only "approval tier". Its summary comes from the approval it
+  // stands for: the fix and its targets, the incident's policy, and who approves.
+  function approvalBrief(tk, ap, jobName, jobUser) {
+    if (!ap || !POLICY[tk.policy] || tk.why !== "approval tier") return null;
+    const pre = (ap.preconditions || []).map((p) => /^(The [a-z ]+? owner)\b.*\bapproves\b/.exec(p.text)).find(Boolean);
+    const jobs = (ap.targets || []).filter((x) => /^job:/.test(x)).map(short);
+    let who = pre ? pre[1] : "A person";
+    if (who === "The job owner" && jobs.length === 1 && jobUser[jobs[0]]) who += ", " + jobUser[jobs[0]] + ",";
+    return {
+      blocked: cap(fixPhrase(ap.fix, ap.targets, jobName)) + " waits for approval.",
+      why: cap(POLICY[tk.policy].text) + ". Artemis does not make this kind of change on its own.",
+      decide: who + " decides whether to approve it.",
+    };
+  }
   function breakerBrief(tk) {
     const why = (tk && tk.why) || "";
     const nodes = [];
@@ -120,12 +158,10 @@
     if (!nodes.length) return null;
     const hosts = nodes.map((n) => n.host);
     const leaves = (tk.components || []).filter((c) => /^leaf:/.test(c)).map(short);
-    const lim = /circuit breaker open: (\d+) automatically cordoned node\(s\) would exceed ([\d.]+)% of (\d+) nodes/.exec(why);
     const weak = nodes.every((n) => n.reasons.some((r) => /^no fresh definitive or strong signal/.test(r)));
     const them = nodes.length === 1 ? "it" : "them";
     const blocked = "Artemis did not drain " + and(hosts) + (leaves.length ? ", the nodes behind switch " + and(leaves) : "") + ".";
-    const why1 = (lim ? "Draining " + them + " would bring the nodes Artemis drained on its own to " + lim[1] +
-      ", over its limit of " + lim[2] + "% of the fleet's " + lim[3] + " nodes, so it stopped and asked for a review." : "A safety limit stopped it.") +
+    const why1 = (limitWords(why, "Draining " + them) || "A safety limit stopped it.") +
       (weak ? " No node shows a strong sign of a fault of its own." : "");
     const step = (tk.steps || []).find((x) => x.fix === "cordon_node");
     const decide = "A person decides whether to drain " + them + " by hand" +
@@ -148,6 +184,8 @@
       const p = gpuParts(gid);
       return p ? "GPU " + p.index + " on " + p.host : gid;
     };
+    const jobUser = {};
+    for (const j of fleet.jobs) jobUser[short(j.id)] = j.user;
     const ticketsById = {};
     for (const tk of data.tickets.tickets) ticketsById[tk.ticket_id] = tk;
 
@@ -273,7 +311,7 @@
         const tk = ticketsById[tid];
         const r = rowFor("ticket", (x) => x.indexOf(tid + " ") === 0);
         return { id: tid, kind: tk ? tk.kind : null, title: tk ? tk.title : tid, tShow: r ? r.tShow : (tk ? tk.opened_t : tDiag), ticket: tk,
-          brief: tk && tk.kind === "breaker" ? breakerBrief(tk) : null };
+          brief: briefOf(tk) };
       });
       const recoverRow = rows.find((r) => r.stage === "recover");
       const breakerRow = rows.find((r) => r.stage === "breaker");
@@ -471,6 +509,19 @@
       }
       if (inc.breaker) addEvent(Object.assign({ t: inc.breaker.tShow, tone: "person", kind: "breaker", text: "Automatic draining is paused until a person reviews it." }, base));
       for (const tk of inc.tickets) addEvent(Object.assign({ t: tk.tShow, tone: "person", kind: "ticket", text: "Ticket opened for a person: " + ticketWords(tk.ticket) + "." }, base));
+    }
+    // Every ticket kind leads with the same three lines: what is blocked, why, what a person
+    // decides. Null for a ticket whose record does not read the expected way.
+    function briefOf(tk) {
+      if (!tk) return null;
+      if (tk.kind === "breaker") return breakerBrief(tk);
+      if (tk.kind === "node_repair") return repairBrief(tk);
+      if (tk.kind === "approval") {
+        const ap = data.approvals.approvals.find((a) => a.ticket === tk.ticket_id) ||
+          data.approvals.approvals.find((a) => a.incident_id === tk.incident_id);
+        return approvalBrief(tk, ap, jobName, jobUser);
+      }
+      return null;
     }
     function hostOfFacts(fs) { return Array.from(new Set(fs.map((f) => short(f.subject).split("/")[0]))).sort(); }
     function fmt1(x) { return x == null ? "?" : (Math.round(x * 10) / 10).toString(); }
@@ -871,6 +922,9 @@
         pace: paceDen ? paceNum / paceDen : 1, gpus: gpuCounts,
         waiting: tickets.length, approvals: approvals.length,
         forPeople: attention.filter((a) => a.tone === "person").length,
+        // The same items by what a person does: approve a fix, repair a node, review the
+        // paused draining. They add up to forPeople.
+        people: peopleOf(attention, tickets),
         alerts: attention.filter((a) => a.kind === "incident").length,
       };
       // All clear only when nothing is wrong, nothing is being fixed and nothing waits.
@@ -880,6 +934,19 @@
         tickets, approvals, activity, attention, step, totals, breaker,
         headline: headlineOf(totals, atWork.map((id) => jobStates[id])),
       };
+    }
+
+    function peopleOf(attention, tickets) {
+      const out = { approve: 0, repair: 0, review: 0 };
+      for (const a of attention) {
+        if (a.tone !== "person") continue;
+        const tk = a.kind === "ticket" ? tickets.find((x) => x.id === a.ticket) : null;
+        const kind = tk ? tk.kind : a.kind;
+        if (kind === "node_repair") out.repair += 1;
+        else if (kind === "breaker") out.review += 1;
+        else out.approve += 1;
+      }
+      return out;
     }
 
     // The overview's headline, from the same totals as its numbers and its attention list.
@@ -956,5 +1023,5 @@
     };
   }
 
-  return { build, hhmm, short, POLICY, FIX };
+  return { build, hhmm, short, POLICY, FIX, limitWords };
 });
