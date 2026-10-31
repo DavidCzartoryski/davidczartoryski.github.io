@@ -112,6 +112,11 @@
   const fmt = (x, d) => (x === null || x === undefined || !isFinite(x) ? "none" : Number(x).toFixed(d === undefined ? 0 : d));
   const pct = (x) => Math.round(x * 100) + "%";
   const listWords = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]);
+  // Work for people, split by what a person does (totals.people). The overview's waiting
+  // line and the Tickets page both say it this way, so they name the same items alike.
+  const peopleWords = (pp) => [pp.approve ? pp.approve + (pp.approve === 1 ? " fix" : " fixes") + " to approve" : "",
+    pp.repair ? pp.repair + (pp.repair === 1 ? " node" : " nodes") + " to repair" : "",
+    pp.review ? pp.review + " paused draining to review" : ""].filter(Boolean).join(", ");
   const jobLink = (id) => "#/job/" + encodeURIComponent(id);
   const incLink = (iid, tab) => "#/incident/" + encodeURIComponent(iid) + (tab ? "/" + tab : "");
   const nodeLink = (host, gpu) => "#/node/" + encodeURIComponent(host) + (gpu !== undefined ? "/" + gpu : "");
@@ -1135,10 +1140,7 @@
         tt.gpus.problem ? tt.gpus.problem + " with a problem" : "", tt.gpus.out ? tt.gpus.out + " out of service" : "", tt.gpus.idle + " idle"].filter(Boolean).join(", "));
       setKpi(k.pace, pct(tt.pace), "", "of normal", tt.pace < 0.97 ? "signal" : "");
       // The line under the number counts the same items, split by what a person does.
-      const pp = tt.people;
-      setKpi(k.people, String(tt.forPeople), "", tt.forPeople ? [pp.approve ? pp.approve + (pp.approve === 1 ? " fix" : " fixes") + " to approve" : "",
-        pp.repair ? pp.repair + (pp.repair === 1 ? " node" : " nodes") + " to repair" : "",
-        pp.review ? pp.review + " paused draining to review" : ""].filter(Boolean).join(", ") : "Nothing", tt.forPeople ? "signal" : "");
+      setKpi(k.people, String(tt.forPeople), "", tt.forPeople ? peopleWords(tt.people) : "Nothing", tt.forPeople ? "signal" : "");
       attn.sync(st.attention);
       feed.sync(st.activity.slice(-6).reverse());
       const counts = { all: S.jobIds.length, attention: 0, healthy: 0 };
@@ -1891,7 +1893,11 @@
       h("p", { class: "faint section" }, "The queue is simulated: nobody received these tickets. Artemis ranked them with code inputs (human needed, GPU-hours lost). A scripted ranker, not AI, ran beside it."));
     let scrolled = false;
     function update(st) {
-      setText(sub, st.tickets.length ? st.tickets.length + (st.tickets.length === 1 ? " ticket waits" : " tickets wait") + " for a person at " + hhmm(st.t) + ". " + st.approvals.length + (st.approvals.length === 1 ? " fix waits" : " fixes wait") + " for approval." :
+      // The overview's count and split. An approval Artemis has not opened a ticket for yet
+      // counts there too, so the subtitle says it has no card here.
+      const n = st.totals.forPeople, loose = n - st.tickets.length;
+      setText(sub, n ? n + (n === 1 ? " item waits" : " items wait") + " for a person at " + hhmm(st.t) + ": " + peopleWords(st.totals.people) + "." +
+        (!loose ? "" : loose < n ? " " + loose + " of them " + (loose === 1 ? "has" : "have") + " no ticket yet." : n === 1 ? " It has no ticket yet." : " None of them has a ticket yet.") :
         "Nothing waits for a person at " + hhmm(st.t) + ".");
       cl.sync(st.tickets);
       if (sel && !scrolled && !m.scroll) {
