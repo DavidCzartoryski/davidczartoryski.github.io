@@ -14,9 +14,11 @@
 //   navigates. Screen readers hear state changes, not every tick.
 // - Reduced motion: the clock starts paused, the screen redraws at most once a second
 //   while playing, and nothing animates.
-// - Routes are hashes (#/fleet, #/job/<id>, #/incident/<id>[/evidence|/actions|/record],
-//   #/node/<host>, #/tickets[/<id>], #/activity, #/about). Each screen remembers its
-//   filter, range, tab, scroll position and focused item for when the visitor comes back.
+// - Routes are hashes (#/fleet or #/cluster, #/gpu/<uuid>, #/job/<id>,
+//   #/incident/<id>[/evidence|/actions|/record], #/node/<host>, #/tickets[/<id>], #/activity,
+//   #/about). Each screen remembers its filter, range, tab, scroll position and focused item
+//   for when the visitor comes back. The grid, charts and GPU record are the Artemis UI kit's
+//   (artemis-ui.js, window.ArtemisUI), the same components the private live UI draws.
 "use strict";
 
 (function (root) {
@@ -28,7 +30,8 @@
     const go = () => { const m = doc.getElementById("main"); if (m) m.textContent = text; };
     if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", go); else go();
   }
-  if (!DATA || !root.ArtemisScenario) { fail("The demo data (demo-data.js) or scenario.js did not load."); return; }
+  const UI = root.ArtemisUI;
+  if (!DATA || !root.ArtemisScenario || !UI) { fail("The demo data (demo-data.js), artemis-ui.js or scenario.js did not load."); return; }
 
   const S = root.ArtemisScenario.build(DATA);
   const hhmm = S.hhmm;
@@ -386,47 +389,55 @@
     return { sync };
   }
 
-  // ---- Charts: thin, labelled, measured in px like the homepage's.
+  // ---- Charts: the kit's (ArtemisUI.chart, the component the live UI draws too), with the
+  // page's event markers over the plot. Each marker is a button in the kit's overlay: one
+  // tab stop, arrow keys between them. Selecting one pauses the clock at that moment and
+  // offers the job or incident it belongs to. Markers closer together than a target's width
+  // share one target that opens a short list under the chart, so no target covers another (a
+  // phone's whole-day chart puts 04:28, 05:00 and 05:12 within a few pixels). The kit draws
+  // each event's line and label; a label that would collide is left to the line's title.
+  // While the clock plays a chart redraws at most once a second, and only on screen.
   let chartSeq = 0;
+  const KIT_TONE = { signal: "signal", ctl: "ctl", muted: "" };
+  const MK_GAP = 28;
+  const onScreen = (e) => { const r = e.getBoundingClientRect(); return r.bottom > 0 && r.top < root.innerHeight && r.height > 0; };
   function chart(opts) {
-    const box = h("div", { class: "chart" });
+    const kc = UI.chart({ title: opts.title, unit: opts.unit || "", height: opts.height || 200, zero: opts.zero !== false, head: false,
+      group: opts.group || null, readout: opts.readout || null, digits: opts.digits === undefined ? 0 : opts.digits, utc: true });
     const headNow = h("span", { class: "now" });
-    const head = h("div", { class: "chart-head" }, h("h3", null, opts.title), headNow);
+    const head = h("div", { class: "chart-head" }, h("h3", null, opts.title), opts.unit ? h("span", { class: "unit" }, opts.unit) : null, headNow);
     const legend = opts.legend ? h("ul", { class: "legend" }, opts.legend.map((l) => h("li", null, h("span", { class: "sw " + l.cls, "aria-hidden": "true" }), l.text))) : null;
-    const svg = sv("svg", { role: "img", "aria-label": opts.title });
-    // Event markers as buttons over the plot: one tab stop, arrow keys between them. Selecting
-    // one pauses the clock at that moment and offers the job or incident it belongs to.
-    // Markers closer together than a target's width share one target, a pill with their count
-    // that opens a short list under the chart, so no target covers another (a phone's
-    // whole-day chart puts 04:28, 05:00 and 05:12 within a few pixels).
-    const mkBar = h("div", { class: "mk-bar", role: "group", "aria-label": "Events on " + opts.title.split(",")[0].toLowerCase() + ". Arrow keys move between them." });
-    const plot = h("div", { class: "plot" }, svg, mkBar);
+    const keys = !!opts.marks && opts.keys !== false;
+    const mkBar = keys ? h("div", { class: "mk-bar", role: "group", "aria-label": "Events on " + opts.title.split(",")[0].toLowerCase() + ". Arrow keys move between them." }) : null;
+    if (mkBar) kc.overlay.appendChild(mkBar);
     const pickId = "mk-pick-" + (++chartSeq);
     const pick = h("div", { class: "mk-pick", id: pickId, "aria-live": "polite" });
     const note = opts.note ? h("p", { class: "chart-note" }, opts.note) : null;
-    append(box, [head, legend, plot, pick, note]);
+    const box = h("div", { class: "chart" + (opts.cls ? " " + opts.cls : "") }, head, legend, kc.el, keys ? pick : null, note);
     const btns = new Map();   // first event's key -> its target
     const groups = new Map(); // first event's key -> the events the target holds now
     let picked = null, pickedT = null, opened = null, pickShown = "", drawnAt = null;
-    mkBar.addEventListener("keydown", (e) => {
-      const list = Array.from(mkBar.children);
-      const i = list.indexOf(doc.activeElement);
-      if (i < 0) return;
-      const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: list.length - 1 }[e.key];
-      if (j === undefined) return;
-      e.preventDefault();
-      const to = list[Math.max(0, Math.min(list.length - 1, j))];
-      for (const b of list) b.tabIndex = b === to ? 0 : -1;
-      to.focus();
-    });
-    pick.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape" || !opened) return;
-      const b = btns.get(opened);
-      opened = null;
-      drawPick();
-      syncPressed();
-      if (b) b.focus();
-    });
+    if (mkBar) {
+      mkBar.addEventListener("keydown", (e) => {
+        const list = Array.from(mkBar.children);
+        const i = list.indexOf(doc.activeElement);
+        if (i < 0) return;
+        const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: list.length - 1 }[e.key];
+        if (j === undefined) return;
+        e.preventDefault();
+        const to = list[Math.max(0, Math.min(list.length - 1, j))];
+        for (const b of list) b.tabIndex = b === to ? 0 : -1;
+        to.focus();
+      });
+      pick.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape" || !opened) return;
+        const b = btns.get(opened);
+        opened = null;
+        drawPick();
+        syncPressed();
+        if (b) b.focus();
+      });
+    }
     function activate(key) {
       const g = groups.get(key);
       if (!g) return;
@@ -513,7 +524,7 @@
         setText(b.firstChild, many ? String(g.ms.length) : "");
         b.style.left = (g.x0 - 12).toFixed(1) + "px";
         b.style.width = (g.x1 - g.x0 + 24).toFixed(1) + "px";
-        b.style.top = (y0 - 14).toFixed(1) + "px";
+        b.style.top = (y0 - 10).toFixed(1) + "px";
       }
       syncPressed();
       drawPick();
@@ -531,167 +542,42 @@
       // The clock went back past a focused marker: focus the latest one still shown.
       if (lost && kids.length) { for (const c of kids) c.tabIndex = c === kids[kids.length - 1] ? 0 : -1; kids[kids.length - 1].focus({ preventScroll: true }); }
     }
-    let width = 0;
-    const height = opts.height || 170;
-    function update(st) {
-      const w = Math.round(box.clientWidth || 0);
+    let lastDraw = -Infinity, lastKey = "", lastData = null;
+    function update(st, force) {
+      const w = Math.round(kc.el.clientWidth || 0);
       if (!w) return;
-      width = w;
-      const narrow = width < 420;
-      // Room above the plot for up to three rows of marker labels (none when labelRows is 0).
-      const rows = opts.labelRows === undefined ? 3 : opts.labelRows;
-      const ml = narrow ? 36 : 44, mr = narrow ? 46 : 58, mt = 18 + rows * 11, mb = 24;
-      const pw = Math.max(80, width - ml - mr), ph = height - mt - mb;
       const [t0, t1] = opts.range(st);
+      const key = [w, t1 - t0].join(",");
+      const t = root.performance.now();
+      if (clock.playing && !scrubbing && !force && key === lastKey && (t - lastDraw < 1000 || !onScreen(box))) return;
+      lastDraw = t; lastKey = key;
       const now = st.t;
       const data = opts.get(st, t0, Math.min(now, t1));
-      let [lo, hi] = opts.domain(data);
-      if (hi - lo < 1e-9) hi = lo + 1;
-      const x = (t) => ml + ((t - t0) / (t1 - t0)) * pw;
-      const y = (v) => mt + (1 - (v - lo) / (hi - lo)) * ph;
-      const kids = [];
-      const ticks = opts.ticks(lo, hi);
-      for (const v of ticks) kids.push(sv("line", { class: "grid", x1: ml, x2: ml + pw, y1: y(v).toFixed(1), y2: y(v).toFixed(1) }));
-      const refs = (opts.refs ? opts.refs(st, data) : []).filter((r) => r.y >= lo && r.y <= hi);
-      for (const r of refs) kids.push(sv("line", { class: "ref", x1: ml, x2: ml + pw, y1: y(r.y).toFixed(1), y2: y(r.y).toFixed(1) }));
-      // Time axis.
-      kids.push(sv("line", { class: "axis", x1: ml, x2: ml + pw, y1: mt + ph, y2: mt + ph }));
-      const spanS = t1 - t0;
-      const every = spanS > 6 * 3600 ? (narrow ? 4 * 3600 : 2 * 3600) : spanS > 2.5 * 3600 ? 3600 : narrow ? 3600 : 1800;
-      for (let tt = Math.ceil(t0 / every) * every; tt <= t1; tt += every) {
-        kids.push(sv("text", { x: x(tt).toFixed(1), y: mt + ph + 16, "text-anchor": "middle" }, hhmm(tt)));
-      }
-      if (now < t1) kids.push(sv("line", { class: "nowline", x1: x(now).toFixed(1), x2: x(now).toFixed(1), y1: mt - 4, y2: mt + ph }));
-      // Event markers. Labels go on up to three rows above the plot, right of their line on
-      // any row, else left of it, at least LGAP apart. Problems and passed checks get a
-      // place first, then the rest in time order, "running again" last; a label that fits on
-      // no row is left out (its line and target stay, and the job's incident list names it).
-      const LGAP = 10;
-      const taken = Array.from({ length: rows }, () => []);
-      const shown = [];
-      for (const m of opts.marks ? opts.marks(st) : []) {
-        if (m.t < t0 || m.t > Math.min(now, t1)) continue;
-        shown.push(m);
-        const mx = x(m.t);
-        kids.push(sv("line", { class: "mk " + m.tone, x1: mx.toFixed(1), x2: mx.toFixed(1), y1: mt - 4, y2: mt + ph }));
-      }
-      const rank = (m) => (m.tone === "signal" || m.label === "check passed" ? 0 : m.label === "running again" ? 2 : 1);
-      for (const m of shown.filter((x) => x.label).sort((a, b) => rank(a) - rank(b))) {
-        const mx = x(m.t);
-        const wl = textWidth(m.label);
-        const sides = [];
-        if (mx + 3 + wl <= ml + pw + mr - 4) sides.push(true);
-        if (mx - 3 - wl >= 0) sides.push(false);
-        let at = null;
-        for (const right of sides) {
-          for (let row = 0; row < rows && !at; row++) {
-            const a = right ? mx + 3 : mx - 3 - wl, b = right ? mx + 3 + wl : mx - 3;
-            if (taken[row].every(([p, q]) => b + LGAP <= p || a >= q + LGAP)) at = { row, right, a, b };
-          }
-          if (at) break;
+      lastData = data;
+      const ms = (opts.marks ? opts.marks(st) : []).filter((m) => m.t >= t0 && m.t <= Math.min(now, t1));
+      // The kit re-attaches its overlay on each draw, which would blur a focused marker.
+      const held = mkBar && mkBar.contains(doc.activeElement) ? doc.activeElement : null;
+      kc.update({ start: t0, end: t1, step: data.step || 60, state: data.state || "fresh", reason: data.reason, lines: data.lines,
+        refs: data.refs || [], bands: data.bands || [], gaps: data.gaps || [],
+        events: ms.map((m) => ({ t: m.t, tone: KIT_TONE[m.tone] || "", text: m.label || "" })) });
+      if (held && held.isConnected && doc.activeElement !== held) held.focus({ preventScroll: true });
+      const svg = kc.el.querySelector("svg");
+      if (svg) setAttr(svg, "aria-label", opts.title + ". " + (data.aria || data.now || "") + " Time from " + hhmm(t0) + " to " + hhmm(t1) + " UTC, simulated.");
+      if (mkBar) {
+        const scale = svg && kc.W ? (svg.getBoundingClientRect().width || kc.W) / kc.W : 1;
+        const gs = [];
+        for (const m of ms) {
+          const mx = kc.x(m.t) * scale, g = gs[gs.length - 1];
+          if (g && mx - g.x1 < MK_GAP) { g.ms.push(m); g.x1 = mx; } else gs.push({ ms: [m], x0: mx, x1: mx });
         }
-        if (!at) continue;
-        taken[at.row].push([at.a, at.b]);
-        kids.push(sv("text", { class: "mk-l " + m.tone, x: (at.right ? mx + 3 : mx - 3).toFixed(1), y: 10 + at.row * 11, "text-anchor": at.right ? "start" : "end", "aria-hidden": "true" }, m.label));
+        syncMarks(gs, (kc.pad ? kc.pad.t : 22) * scale, st.t);
       }
-      // Group the events by distance on this chart's width; one target per group. The
-      // targets, the marker lines and the current value are what the line labels avoid.
-      const gs = [];
-      for (const m of shown) {
-        const mx = x(m.t), g = gs[gs.length - 1];
-        if (g && mx - g.x1 < MK_GAP) { g.ms.push(m); g.x1 = mx; } else gs.push({ ms: [m], x0: mx, x1: mx });
-      }
-      const blocked = [];
-      for (const g of gs) {
-        blocked.push(g.ms.length > 1 ? [g.x0 - 10, g.x1 + 10, mt - 10, mt + 6] : [g.x0 - 4, g.x0 + 4, mt - 6, mt + 2]);
-        for (const m of g.ms) blocked.push([x(m.t) - 1, x(m.t) + 1, mt - 4, mt + ph]);
-      }
-      const hard = (bx) => blocked.every((o) => bx[1] + 3 <= o[0] || bx[0] >= o[1] + 3 || bx[3] + 1 <= o[2] || bx[2] >= o[3] + 1);
-      // Where the data lines run: the lowest and highest y they reach in each pixel column.
-      const colLo = new Float64Array(width + 2).fill(Infinity), colHi = new Float64Array(width + 2).fill(-Infinity);
-      for (const ln of data.lines) {
-        let prev = null;
-        for (const [t, v] of ln.points) {
-          if (v === null || v === undefined || !isFinite(v)) { prev = null; continue; }
-          const p1 = [x(t), y(v)], p0 = prev || p1;
-          const xa = Math.min(p0[0], p1[0]), xb = Math.max(p0[0], p1[0]);
-          const yAt = (u) => (xb === xa ? null : p0[1] + (p1[1] - p0[1]) * (clampN(u, xa, xb) - p0[0]) / (p1[0] - p0[0]));
-          for (let c = Math.max(0, Math.floor(xa)); c <= Math.min(width + 1, Math.floor(xb)); c++) {
-            const ya = xb === xa ? p0[1] : yAt(c), yb = xb === xa ? p1[1] : yAt(c + 1);
-            colLo[c] = Math.min(colLo[c], ya, yb);
-            colHi[c] = Math.max(colHi[c], ya, yb);
-          }
-          prev = p1;
-        }
-      }
-      const clear = (bx) => {
-        for (let c = Math.max(0, Math.floor(bx[0])); c <= Math.min(width + 1, Math.ceil(bx[1])); c++) if (colHi[c] >= bx[2] - 1 && colLo[c] <= bx[3] + 1) return false;
-        return true;
-      };
-      const free = (bx) => hard(bx) && clear(bx);
-      // A text box: [left, right, top, bottom] for a 10 px label at baseline yb.
-      const tbox = (a, w, yb) => [a, a + w, yb - 8, yb + 3];
-      // A value axis label under an event's target (an event at the window's left edge) is
-      // left out; its grid line stays.
-      for (const v of ticks) {
-        const label = opts.fmtTick(v), w = textWidth(label);
-        if (hard(tbox(ml - 8 - w, w, y(v) + 3.5))) kids.push(sv("text", { x: ml - 8, y: (y(v) + 3.5).toFixed(1), "text-anchor": "end" }, label));
-      }
-      // Lines: an underlay keeps highlighted lines readable over the others.
-      for (const ln of data.lines) {
-        const d = path(ln.points, x, y);
-        if (!d) continue;
-        if (ln.cls === "hot") kids.push(sv("path", { class: "ln under", d }));
-        kids.push(sv("path", { class: "ln " + (ln.cls || ""), d }));
-      }
-      if (data.cur && data.cur.v !== null && isFinite(data.cur.v) && now <= t1) {
-        const cy = y(Math.max(lo, Math.min(hi, data.cur.v)));
-        kids.push(sv("circle", { class: "cur" + (data.cur.tone ? " " + data.cur.tone : ""), cx: x(now).toFixed(1), cy: cy.toFixed(1), r: 4 }));
-        blocked.push([x(now) - 5, x(now) + 5, cy - 5, cy + 5]);
-        // Beside the dot, else just below or above it.
-        const w = textWidth(data.cur.label), cx = x(now) + 9;
-        const yb = [cy + 3.5, cy + 15, cy - 8].find((v) => hard(tbox(cx, w, v))) || cy + 3.5;
-        blocked.push(tbox(cx, w, yb));
-        kids.push(sv("text", { class: "cur-l", x: cx.toFixed(1), y: yb.toFixed(1) }, data.cur.label));
-      }
-      // Each reference line's label: at the right end above the line, else below it, else
-      // further left, wherever no marker, target, value or data line covers it.
-      for (const r of refs) {
-        const w = textWidth(r.label), ry = y(r.y);
-        const spots = [];
-        for (let right = ml + pw - 4; right - w >= ml + 4; right -= 8) for (const yb of [ry - 5, ry + 12]) if (yb - 8 >= mt - 14 && yb + 3 <= mt + ph) spots.push([right - w, yb]);
-        const at = spots.find(([a, yb]) => free(tbox(a, w, yb))) || spots.find(([a, yb]) => hard(tbox(a, w, yb))) || [ml + pw - 4 - w, ry - 5];
-        blocked.push(tbox(at[0], w, at[1]));
-        kids.push(sv("text", { class: "ref-l", x: (at[0] + w).toFixed(1), y: at[1].toFixed(1), "text-anchor": "end" }, r.label));
-      }
-      svg.setAttribute("width", width);
-      svg.setAttribute("height", height);
-      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-      svg.replaceChildren(...kids);
-      syncMarks(gs, mt, st.t);
       setText(headNow, data.now || "");
-      setAttr(svg, "aria-label", opts.title + ". " + (data.aria || data.now || "") + " Time from " + hhmm(t0) + " to " + hhmm(t1) + " UTC, simulated.");
     }
-    return { el: box, update };
+    // The shared crosshair's reading for this chart (hoverGroup), or its own latest line.
+    function readout(text) { setText(headNow, text === null ? (lastData && lastData.now) || "" : text); }
+    return { el: box, update, readout, kit: kc, title: opts.title, opts };
   }
-  // Chart labels are 10 px Martian Mono, one advance per character. Measured once the fonts
-  // have loaded (an estimate until then).
-  let monoAdvance = null;
-  function textWidth(s) {
-    if (monoAdvance === null && doc.fonts && doc.fonts.status === "loaded") {
-      const probe = sv("svg", { class: "chart-probe", width: 0, height: 0, "aria-hidden": "true" }, sv("text", null, "0".repeat(20)));
-      const host = h("div", { class: "chart" }, probe);
-      host.style.position = "absolute";
-      host.style.visibility = "hidden";
-      doc.body.appendChild(host);
-      const len = probe.firstChild.getComputedTextLength();
-      host.remove();
-      if (len > 0) monoAdvance = len / 20;
-    }
-    return String(s).length * (monoAdvance || 6.6);
-  }
-  const MK_GAP = 28;
-  const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   function path(points, x, y) {
     let d = "", pen = false;
     for (const [t, v] of points) {
@@ -701,14 +587,6 @@
     }
     return d;
   }
-  const niceTicks = (lo, hi, n) => {
-    const step = Math.pow(10, Math.floor(Math.log10((hi - lo) / (n || 3))));
-    const err = (hi - lo) / (n || 3) / step;
-    const s = step * (err >= 5 ? 5 : err >= 2 ? 2 : 1);
-    const out = [];
-    for (let v = Math.ceil(lo / s) * s; v <= hi + 1e-9; v += s) out.push(Number(v.toFixed(6)));
-    return out;
-  };
   function markFor(m) {
     const label = { stalled: "stalled", stopped: "stopped", slowed: "slowed", restarting: "fix", checking: "running again",
       recovered: "check passed", diagnosed: "diagnosed" }[m.health] || m.health;
@@ -751,105 +629,59 @@
       sv("path", { class: "ln" + (tone ? " " + tone : ""), d: path(points, x, y) }));
   }
 
-  // ---- Topology: racks, nodes, GPUs; every GPU names its job.
-  const CELL_WORDS = {
-    ok: "training normally", idle: "no job", affected: "its job has a problem", stopped: "its job stopped",
-    culprit: "the GPU behind the problem", lost: "stopped responding", fixing: "Artemis is restarting or checking its job",
-    drained: "drained by Artemis",
-  };
-  function topology(opts) {
-    const el = h("div", null);
-    const legend = h("ul", { class: "topo-legend", "aria-label": "Legend" },
-      [["", "Training normally"], ["affected", "Job has a problem"], ["culprit", "GPU behind it"], ["lost", "Not responding"],
-        ["stopped", "Job stopped"], ["fixing", "Artemis is fixing or checking"], ["drained", "Drained"], ["idle", "No job"]]
-        .map(([c, t]) => h("li", null, h("span", { class: "cell sw-cell " + c, "aria-hidden": "true" }), t)));
-    const racks = h("div", { class: "racks" });
-    const info = h("p", { class: "topo-info", "aria-live": "off" }, "Each square is a GPU. The name above each node is the job running on it. Select a GPU to open its job.");
-    el.append(legend, racks, info);
-    const cells = [];
-    const nodeEls = {};
+  // ---- The cluster grid: the kit's (ArtemisUI.grid, as in the live UI). A square's fill is
+  // the GPU's health and the dashed orange frame is its job's allocation, both from the
+  // scenario's cellAt; the frame is never a fault. Hover or focus shows the GPU's identity.
+  const gpuLink = (gid) => "#/gpu/" + encodeURIComponent(S.gpuById[gid].uuid);
+  const LEGEND = ["healthy", "degraded", "cause", "checking", "drained", "unresponsive", "stale"];
+  function nodeNote(hs) {
+    const words = { drained: "Drained by Artemis (simulated)", network_down: "Network down (simulated)", flapping: "Links dropping (simulated)" }[hs.state];
+    return [hs.job ? "" : "Idle", words || ""].filter(Boolean).join(" · ");
+  }
+  function cellTip(st, g, c) {
+    const job = g.job ? st.jobs[g.job] : null;
+    const G = S.gpuById[g.id];
+    return [["Model", G.model], ["GPU", g.index + " on " + g.host], ["UUID", G.uuid],
+      ["Job", job ? job.name + (g.rank !== undefined ? ", rank " + g.rank : "") : "none, idle"], ["Health", c.words], ["Time", hhmm(st.t) + " UTC, simulated"]];
+  }
+  function gridModel(st, only) {
+    const groups = {}, racks = [];
     for (const r of DATA.topology.racks) {
-      const leaf = h("span", { class: "leafsw" }, "switch " + r.leaf);
-      const rack = h("section", { class: "rack panel", "aria-label": "Rack " + r.name + ", switch " + r.leaf },
-        h("div", { class: "rack-head" }, h("span", { class: "r" }, "Rack " + r.name), leaf));
-      for (const host of r.hosts) {
-        const jobEl = h("span", { class: "node-job" });
-        const note = h("p", { class: "node-note" });
-        const grid = h("div", { class: "cells" });
-        for (const g of DATA.topology.gpus.filter((x) => x.host === host).sort((a, b) => a.index - b.index)) {
-          const c = h("button", { type: "button", class: "cell", "data-gid": g.id, "data-key": "gpu-" + g.id, tabindex: "-1" });
-          c.addEventListener("click", () => pick(g.id));
-          c.addEventListener("focus", () => { roving = g.id; show(g.id); });
-          c.addEventListener("pointerenter", () => show(g.id));
-          grid.appendChild(c);
-          cells.push(c);
-        }
-        rack.appendChild(h("div", { class: "node" },
-          h("div", { class: "node-head" }, h("a", { href: nodeLink(host), "data-key": "node-" + host }, host), jobEl), grid, note));
-        nodeEls[host] = { jobEl, note };
-      }
-      racks.appendChild(rack);
-      nodeEls["leaf:" + r.leaf] = leaf;
+      const hosts = r.hosts.filter((x) => !only || only.indexOf(x) >= 0);
+      if (!hosts.length) continue;
+      const lf = st.leaves[r.leaf];
+      racks.push({ id: r.name, label: "Rack " + r.name, sub: "switch " + r.leaf + (lf.state === "failed" ? " failed" : lf.state === "suspect" ? ", links down" : "") + " · " + hosts.length * 8 + " GPUs",
+        nodes: hosts.map((host) => {
+          const hs = st.hosts[host];
+          return { id: host, label: host, href: nodeLink(host), tone: hs.state === "network_down" || hs.state === "flapping" ? "signal" : null, note: nodeNote(hs),
+            cells: hs.gpus.map((g) => {
+              const c = S.cellAt(st, g.id);
+              if (g.job) groups[g.job] = { label: S.jobName[g.job], href: jobLink(g.job) };
+              return { id: g.id, health: c.health, allocation: c.allocation, group: g.job || null, label: "", tip: cellTip(st, g, c) };
+            }) };
+        }) });
     }
-    let roving = opts.focus && cells.some((c) => c.getAttribute("data-gid") === opts.focus) ? opts.focus : cells[0].getAttribute("data-gid");
-    let last = null;
-    racks.addEventListener("keydown", (e) => {
-      const i = cells.findIndex((c) => c === doc.activeElement);
-      if (i < 0) return;
-      const move = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 8, ArrowUp: -8, Home: -i, End: cells.length - 1 - i }[e.key];
-      if (move === undefined) return;
-      e.preventDefault();
-      const j = Math.max(0, Math.min(cells.length - 1, i + move));
-      cells[j].focus();
-    });
-    racks.addEventListener("pointerleave", () => show(null));
-    function cellText(g, st) {
-      const job = g.job ? st.jobs[g.job] : null;
-      return "GPU " + g.index + " on " + g.host + ", " + (job ? "job " + job.name + (g.rank !== undefined ? ", rank " + g.rank : "") : "no job") + ", " + CELL_WORDS[g.state];
-    }
-    function show(gid) {
-      if (!gid || !last) {
-        setText(info, "Each square is a GPU. The name above each node is the job running on it. Select a GPU to open its job.");
-        return;
-      }
-      const g = last.gpus[gid];
-      const job = g.job ? last.jobs[g.job] : null;
-      info.replaceChildren(h("strong", null, "GPU " + g.index + " on " + g.host), " · ",
-        job ? "job " + job.name + (g.rank !== undefined ? ", rank " + g.rank : "") + " · " + CELL_WORDS[g.state] : "no job, " + CELL_WORDS[g.state]);
-    }
-    function pick(gid) {
-      const g = last ? last.gpus[gid] : null;
-      if (!g) return;
-      if (opts.onPick) opts.onPick(g);
-    }
+    return { racks, groups };
+  }
+  // Redrawn only when a square, frame or note changes (or the minute its tips name). A tip the
+  // pointer holds is shown again after a redraw; keyboard focus stays on its square (the kit).
+  function clusterGrid(opts) {
+    const g = UI.grid({ onPick: opts.onPick, label: opts.label });
+    let drawn = null, hover = null;
+    g.el.addEventListener("mouseover", (e) => { const c = e.target.closest ? e.target.closest(".ak-cell") : null; hover = c ? c.getAttribute("data-cell") : null; });
+    g.el.addEventListener("mouseleave", () => { hover = null; });
     function update(st) {
-      last = st;
-      const hl = opts.highlight ? opts.highlight() : null;
-      for (const c of cells) {
-        const gid = c.getAttribute("data-gid");
-        const g = st.gpus[gid];
-        setClass(c, "cell" + (g.state !== "ok" ? " " + g.state : "") + (hl && g.job !== hl ? " dim" : ""));
-        setAttr(c, "aria-label", cellText(g, st));
-        setAttr(c, "tabindex", gid === roving ? "0" : "-1");
-      }
-      for (const host in st.hosts) {
-        const hs = st.hosts[host];
-        const n = nodeEls[host];
-        const job = hs.job ? st.jobs[hs.job] : null;
-        setText(n.jobEl, job ? job.name : "no job");
-        setClass(n.jobEl, "node-job" + (!job ? " none" : HEALTH[job.health].tone === "signal" ? " signal" : ""));
-        const note = { drained: "drained by Artemis", network_down: "network down", flapping: "network links dropping" }[hs.state] || "";
-        setText(n.note, note);
-        setClass(n.note, "node-note" + (hs.state === "drained" ? " ctl" : ""));
-      }
-      for (const name in st.leaves) {
-        const lf = st.leaves[name];
-        const e = nodeEls["leaf:" + name];
-        setText(e, "switch " + name + (lf.state === "failed" ? " failed" : lf.state === "suspect" ? ", links down" : ""));
-        setClass(e, "leafsw" + (lf.state !== "ok" ? " " + lf.state : ""));
-      }
+      const model = gridModel(st, opts.hosts ? opts.hosts(st) : null);
+      const key = JSON.stringify(model);
+      if (key === drawn) return;
+      drawn = key;
+      g.update(model);
+      for (const a of g.el.querySelectorAll("a.ak-node-label")) a.setAttribute("data-key", opts.keyPrefix + a.textContent);
+      for (const a of g.el.querySelectorAll("a.ak-group-label")) a.setAttribute("data-key", opts.keyPrefix + "job-" + a.getAttribute("href").split("/").pop());
+      const c = hover ? g.el.querySelector('[data-cell="' + cssEscape(hover) + '"]') : null;
+      if (c && doc.activeElement !== c) c.dispatchEvent(new root.MouseEvent("mouseenter"));
     }
-    return { el, update };
+    return { el: g.el, update, focus: g.focus };
   }
 
   // ---- The story guide: one row above the screen (the step, its link, Back and Next) that
@@ -988,10 +820,12 @@
       h("div", { class: "section-head" }, h("h2", null, title), sub ? (typeof sub === "string" ? h("p", null, sub) : sub) : null), kids);
   }
 
-  // Overview: what is running, what is unhealthy, what needs attention.
+  // The cluster screen (#/fleet, also #/cluster): what runs, what is unhealthy, what needs
+  // attention, and every GPU by rack and node. #/gpu/<uuid> is the same screen with that
+  // GPU's record in the right column (under the grid on narrower screens).
   VIEWS.fleet = function (args, m) {
-    const el = h("div");
-    const eyebrow = h("p", { class: "label eyebrow" }, h("span", null, "Fleet overview"));
+    const el = h("div", { class: "cluster" });
+    const eyebrow = h("p", { class: "label eyebrow" }, h("span", null, "Cluster overview"));
     const title = heading("");
     // Under the headline: the first thing that needs attention, as a link, so the next
     // useful click is right there. Redrawn only when that item changes.
@@ -1000,13 +834,13 @@
     let ledeKey = null;
     const installed = DATA.topology.gpus.length;
     const k = {
+      gpus: kpi("GPUs", "Every GPU of this simulated fleet (an illustrative size, " + installed + " installed) and what it does now: training at its job's normal pace, idle, in a job Artemis is restarting or checking, in a job with a problem, or out of service."),
+      nodes: kpi("Nodes", "Nodes of 8 GPUs, 4 per rack, each rack behind one network switch. A drained node takes no new work; a node whose network is down sends no fresh telemetry."),
       running: kpi("Jobs running", "Jobs training now, at their normal pace or slower. A stalled, stopped or restarting job is not running."),
-      problems: kpi("Jobs with problems", "Jobs that stalled, slowed or stopped and have not been fixed yet."),
-      gpus: kpi("GPUs training normally", "GPUs whose job trains at its normal pace, out of the " + installed + " installed. The rest have no job, are out of service, belong to a job with a problem, or to a job Artemis is restarting or checking."),
-      pace: kpi("Fleet speed", "Each job's throughput as a share of its normal pace, weighted by its GPUs. 100% means every job runs at its normal pace."),
+      attention: kpi("Needs attention", "Jobs that stalled, slowed or stopped, jobs Artemis is restarting or checking, and alerts under review. Work for a person is counted on its own."),
       people: kpi("Waiting for approval or repair", "Work only a person can do: tickets Artemis opened, and fixes that wait for approval before a ticket exists."),
     };
-    const kpis = h("div", { class: "kpis fleet-kpis" }, Object.values(k).map((x) => x.el));
+    const kpis = h("div", { class: "kpis fleet-kpis ak-strip" }, Object.values(k).map((x) => x.el));
     // Needs attention + what Artemis is doing.
     const attnList = h("ul", { class: "card-list", "aria-label": "Needs attention" });
     const attnHint = h("p", { class: "hold", "aria-live": "off" });
@@ -1014,8 +848,7 @@
       key: (a) => a.key, hint: attnHint,
       make: (a) => {
         const t = h("span", { class: "t" }), d = h("span", { class: "d" }), go = h("span", { class: "go", "aria-hidden": "true" }, "Open");
-        const href = attnHref(a);
-        const link = h("a", { class: "attn", href, "data-key": "attn-" + a.key },
+        const link = h("a", { class: "attn", href: attnHref(a), "data-key": "attn-" + a.key },
           h("span", { class: "dot " + a.tone, "aria-hidden": "true" }), t, go, d);
         link.addEventListener("click", () => { if (a.job) m.selected = a.job; });
         return h("li", null, link);
@@ -1031,10 +864,6 @@
     const feedList = h("ul", { class: "feed", "aria-label": "Latest fleet activity" });
     const feedHint = h("p", { class: "hold", "aria-live": "off" });
     const feed = calmList(feedList, feedOpts(feedHint));
-    const split = h("div", { class: "split section" },
-      h("div", null, h("div", { class: "section-head" }, h("h2", null, "Needs attention"), h("p", null, "Problems first, then fixes under way, then work for a person.")), attnList, attnHint),
-      h("div", null, h("div", { class: "section-head" }, h("h2", null, "What Artemis is doing"), h("a", { href: "#/activity", class: "muted" }, "All activity")),
-        h("div", { class: "panel" }, h("div", { class: "box feed-box" }, feedList, feedHint))));
     // Jobs.
     m.filter = m.filter || "all";
     const filters = h("div", { class: "filters", role: "group", "aria-label": "Show jobs" });
@@ -1064,59 +893,86 @@
         h("td", { class: "name" }, nm, who), h("td", { class: "c-health" }, b),
         h("td", { class: "c-speed" }, h("div", { class: "speed-cell" }, sp, num)), gpus, why);
       tr.addEventListener("click", (e) => { if (e.target.closest("a")) return; m.selected = id; location.hash = jobLink(id); });
-      tr.addEventListener("pointerenter", () => { hover = id; topo.update(state); });
-      tr.addEventListener("pointerleave", () => { hover = null; topo.update(state); });
-      nm.addEventListener("focus", () => { hover = id; topo.update(state); });
-      nm.addEventListener("blur", () => { hover = null; topo.update(state); });
       rows[id] = { tr, who, b, sp, num, gpus, whyText, inspect };
       tbody.appendChild(tr);
     }
     // A row held for focus goes once focus leaves it, even while the clock is paused.
     tbody.addEventListener("focusout", () => root.setTimeout(() => { if (el.isConnected) update(state); }, 0));
-    let hover = null;
     const table = h("table", { class: "jobs" },
       h("caption", { class: "sr-only" }, "Jobs on the fleet, with their health, training speed and GPUs"),
       h("thead", null, h("tr", null, ["Job", "Health", "Training speed, last hour", "GPUs", "Problem"].map((t) => h("th", { class: "label", scope: "col" }, t)))),
       tbody);
     // Fleet speed chart.
     const fleetChart = chart({
-      title: "Fleet training speed today", height: 140, labelRows: 0,
+      title: "Fleet training speed today", unit: "% of normal", height: 150, markJobLink: true,
       note: "Each job's throughput as a share of its normal pace, weighted by its GPUs. A dip is a job that slowed or stopped. Orange marks a problem, green a fix or recovery.",
       legend: [{ cls: "", text: "Fleet speed" }, { cls: "ref", text: "Normal pace" }, { cls: "mk-signal", text: "Problem" }, { cls: "mk-ctl", text: "Fix or recovery" }],
       range: () => [S.start, S.end],
       get: (st, t0, t1) => {
         const pts = S.series("pace", null, t0, t1, 120);
-        return { lines: [{ points: pts.map(([t, v]) => [t, v * 100]) }], cur: { v: st.totals.pace * 100, label: pct(st.totals.pace) },
+        // The normal pace's line is named by the legend: a label at its end would sit under
+        // the event targets on a phone's chart.
+        return { step: 120, lines: [{ key: "pace", label: "Fleet speed", points: pts.map(([t, v]) => [t, v * 100]) }], refs: [{ y: 100, label: "" }],
           now: pct(st.totals.pace) + " of normal at " + hhmm(st.t), aria: "Now " + pct(st.totals.pace) + " of normal." };
       },
-      domain: () => [0, 110], ticks: () => [0, 50, 100], fmtTick: (v) => v + "%",
-      refs: () => [{ y: 100, label: "normal" }],
-      markJobLink: true,
       marks: () => S.fleetMarks().map(markFor).filter((x) => x.label !== "running again")
         .map((x) => named(Object.assign({}, x, { label: "" }), true)),
     });
-    const topo = topology({
-      focus: m.topoFocus, highlight: () => hover,
-      onPick: (g) => { if (g.job) { m.selected = g.job; location.hash = jobLink(g.job); } else location.hash = nodeLink(g.host); },
-    });
-    // What is running and how fast first, then the jobs, then what needs attention and what
-    // Artemis did, then where the jobs run. On a phone the headline already gives the totals,
-    // so the chart comes before the numbers and starts on the first screen (moved in the
-    // page, not only drawn there, so keyboard order follows).
+    // Every GPU, and one GPU's record.
+    const grid = clusterGrid({ onPick: (gid) => { location.hash = gpuLink(gid); }, keyPrefix: "node-", label: "GPUs by rack and node" });
+    const legend = UI.legend(LEGEND, { outline: true, foot: "No outline: idle" });
+    const map = h("section", { class: "cluster-map", "aria-labelledby": "map-title" },
+      h("div", { class: "section-head" }, h("h2", { id: "map-title" }, "Where jobs run"),
+        h("p", null, "Simulated fleet, illustrative size: 6 racks, each behind one network switch. 4 nodes per rack, 8 GPUs per node.")),
+      grid.el, legend, h("p", { class: "map-hint" }, "Hover for GPU identity · Select a GPU for history · Select a job label for its telemetry history"));
+    let selected = null, recKey = null;
+    const rec = UI.gpuRecord({ onClose: () => { m.cellFocus = selected; location.hash = "#/fleet"; }, jobHref: (id) => jobLink(id), utc: true });
+    const recordBox = h("section", { class: "record-box", "aria-label": "GPU record", hidden: true }, rec.el,
+      h("p", { class: "record-src" }, "Simulated: synthesized by this page around the snapshot's values. Illustrative service and benchmark records."));
+    const lists = h("div", { class: "side-lists" },
+      h("div", { class: "side-block" }, h("div", { class: "section-head" }, h("h2", null, "Needs attention"), h("p", null, "Problems first, then fixes under way, then work for a person.")), attnList, attnHint),
+      h("div", { class: "side-block" }, h("div", { class: "section-head" }, h("h2", null, "Jobs"), filters), table),
+      h("div", { class: "side-block" }, h("div", { class: "section-head" }, h("h2", null, "What Artemis is doing"), h("a", { href: "#/activity", class: "muted" }, "All activity")),
+        h("div", { class: "panel" }, h("div", { class: "box feed-box" }, feedList, feedHint))));
+    const side = h("div", { class: "cluster-side" }, recordBox, lists);
     const chartPanel = h("div", { class: "panel chart-box fleet-chart" }, fleetChart.el);
-    function place() {
-      const small = phone();
-      if ((chartPanel.nextElementSibling === kpis) !== small) el.insertBefore(chartPanel, small ? kpis : kpis.nextSibling);
+    el.append(eyebrow, title, lede, kpis, h("div", { class: "cluster-main" }, map, side), chartPanel);
+    // Select a GPU by UUID (null: none). The record replaces the lists while it is open.
+    function select(uuid) {
+      const G = uuid ? S.gpuByUuid[uuid] : null;
+      const was = selected;
+      selected = G ? G.id : null;
+      recKey = null;
+      recordBox.hidden = !selected;
+      lists.hidden = !!selected;
+      el.classList.toggle("has-record", !!selected);
+      return was;
     }
-    el.append(eyebrow, title, lede, kpis, chartPanel,
-      section("Jobs", filters, table),
-      split,
-      section("Where jobs run", "6 racks, each behind one network switch. 4 nodes per rack, 8 GPUs per node.", topo.el));
+    // The record redraws when what it says changes; its latest values change in place, so a
+    // keyboard user inside it keeps their place while the clock plays.
+    function drawRecord(st) {
+      const rd = S.gpuRecordAt(selected, st.t, st);
+      const key = [rd.uuid, rd.health, rd.location.current ? rd.location.current.run : "", rd.service.records.length].join("|");
+      if (key !== recKey) {
+        recKey = key;
+        const a = doc.activeElement;
+        const at = a && rec.el.contains(a) ? [".ak-close", ".ak-job-link", ".ak-record-title"].find((s) => a.matches(s)) : null;
+        rec.update(rd);
+        const back = at ? rec.el.querySelector(at) : null;
+        if (back) back.focus({ preventScroll: true });
+        return;
+      }
+      const dds = rec.el.querySelectorAll('[data-part="latest"] dd');
+      rd.latest.forEach((x, i) => {
+        if (!dds[i]) return;
+        setText(dds[i], x.value === null ? "not collected" : x.value + " " + x.unit);
+        setAttr(dds[i], "data-state", x.value === null ? "no_data" : "fresh");
+        setAttr(dds[i], "data-raw", x.value === null ? "" : x.value);
+      });
+    }
     function update(st) {
-      place();
       const tt = st.totals;
-      const bad = tt.unhealthy;
-      setText(eyebrow.firstChild, "Fleet overview · " + hhmm(st.t) + " UTC");
+      setText(eyebrow.firstChild, "Cluster overview · " + hhmm(st.t) + " UTC");
       // The headline, the lede, the numbers and "Needs attention" all read the same state.
       setText(title, st.headline);
       const top = st.attention[0] || null;
@@ -1133,14 +989,23 @@
           else lede.replaceChildren(tt.gpus.problem + " GPUs with a problem and " + tt.gpus.out + " out of service.");
         });
       }
+      const g = tt.gpus;
+      setKpi(k.gpus, String(g.total), "", [g.training + " training", g.idle + " idle", g.fixing ? g.fixing + " restarting or checking" : "",
+        g.problem ? g.problem + " with a problem" : "", g.out ? g.out + " out of service" : ""].filter(Boolean).join(", "));
+      const hs = Object.values(st.hosts);
+      const nCount = (s) => hs.filter((x) => x.state === s).length;
+      setKpi(k.nodes, String(hs.length), "", [hs.filter((x) => !x.job).length + " idle", nCount("drained") ? nCount("drained") + " drained" : "",
+        nCount("network_down") + nCount("flapping") ? nCount("network_down") + nCount("flapping") + " without fresh telemetry" : ""].filter(Boolean).join(", "));
       setKpi(k.running, String(tt.running), "of " + tt.jobs, tt.counts.healthy + " healthy, " + tt.counts.recovered + " recovered" +
         (tt.counts.restarting ? ", " + tt.counts.restarting + " restarting" : ""));
-      setKpi(k.problems, String(bad), "", bad ? listWords(S.jobIds.filter((id) => ["stalled", "stopped", "slowed"].indexOf(st.jobs[id].health) >= 0).map((id) => st.jobs[id].name)) : "None", bad ? "signal" : "");
-      setKpi(k.gpus, String(tt.gpus.training), "of " + tt.gpus.total, [tt.gpus.fixing ? tt.gpus.fixing + " restarting or checking" : "",
-        tt.gpus.problem ? tt.gpus.problem + " with a problem" : "", tt.gpus.out ? tt.gpus.out + " out of service" : "", tt.gpus.idle + " idle"].filter(Boolean).join(", "));
-      setKpi(k.pace, pct(tt.pace), "", "of normal", tt.pace < 0.97 ? "signal" : "");
+      const own = st.attention.filter((a) => a.tone !== "person");
+      const bad = S.jobIds.filter((id) => ["stalled", "stopped", "slowed"].indexOf(st.jobs[id].health) >= 0).map((id) => st.jobs[id].name);
+      setKpi(k.attention, String(own.length), "", own.length ? [bad.length ? listWords(bad) + (bad.length === 1 ? " has" : " have") + " a problem" : "",
+        tt.atWork ? tt.atWork + " being fixed" : "", tt.alerts ? tt.alerts + " under review" : ""].filter(Boolean).join(", ") : "Nothing", own.length ? "signal" : "");
       // The line under the number counts the same items, split by what a person does.
       setKpi(k.people, String(tt.forPeople), "", tt.forPeople ? peopleWords(tt.people) : "Nothing", tt.forPeople ? "signal" : "");
+      grid.update(st);
+      if (selected) drawRecord(st);
       attn.sync(st.attention);
       feed.sync(st.activity.slice(-6).reverse());
       const counts = { all: S.jobIds.length, attention: 0, healthy: 0 };
@@ -1153,14 +1018,13 @@
         const hide = !(m.filter === "all" || (m.filter === "attention" ? needs : !needs));
         if (!hide || !r.tr.contains(doc.activeElement)) r.tr.hidden = hide;
         r.tr.classList.toggle("selected", m.selected === id);
-        r.tr.classList.toggle("hl", hover === id);
         setText(r.who, js.user);
         updateBadge(r.b, js.health);
         const pts = S.series("throughput", id, st.t - 3600, st.t, 120);
         updateSpark(r.sp, pts, js.base, needs ? "signal" : "");
         r.num.replaceChildren(fmt(js.throughput) + " samples/s ", h("span", { class: "pct" + (js.pct < 0.95 ? " signal" : "") }, pct(js.pct)));
         setText(r.gpus, js.gpus + " on " + js.hosts.length + (js.hosts.length === 1 ? " node" : " nodes"));
-        const inc = st.incidents.find((i) => i.jobs.indexOf(id) >= 0 && i.policy !== "none" && (i.stage !== "recovered" || true));
+        const inc = st.incidents.find((i) => i.jobs.indexOf(id) >= 0 && i.policy !== "none");
         setText(r.whyText, inc ? (inc.diagnosed ? inc.words.short : "Under review") : "None");
         const affected = !!inc && (needs || js.health === "restarting" || js.health === "checking");
         if (r.inspect.hidden === affected) r.inspect.hidden = !affected;
@@ -1170,9 +1034,17 @@
         setText(chips[key].n, String(counts[key]));
       }
       fleetChart.update(st);
-      topo.update(st);
     }
-    return { el, update, save: () => ({ topoFocus: (doc.activeElement && doc.activeElement.getAttribute("data-gid")) || m.topoFocus }) };
+    return { el, update, select, cluster: true,
+      focusRecord: () => rec.focus(), focusCell: (gid) => grid.focus(gid),
+      save: () => ({ cellFocus: (doc.activeElement && doc.activeElement.getAttribute("data-cell")) || null }) };
+  };
+  VIEWS.cluster = (args, m) => VIEWS.fleet(args, m);
+  VIEWS.gpu = function (args, m) {
+    if (!S.gpuByUuid[args[0]]) return notFound("There is no GPU " + args[0] + " in this simulated fleet.");
+    const v = VIEWS.fleet([], m);
+    v.select(args[0]);
+    return v;
   };
 
   function attnHref(a) {
@@ -1257,141 +1129,127 @@
     return { lead, now, why, tone: HEALTH[js.health].tone };
   }
 
+  // A job's page: its summary and numbers, step time by rank, six telemetry charts on one
+  // shared range and crosshair, why it slowed, where it runs and its incidents. Everything
+  // on it is simulated around the snapshot's values; none of it comes from a running job.
+  const RANGES = { "15m": [900, 15, "15 min"], "1h": [3600, 60, "1 h"], "6h": [21600, 300, "6 h"], day: [0, 300, "Whole day"] };
+  const TONES = ["s0", "s1", "s3"];
   VIEWS.job = function (args, m) {
     const id = args[0];
     if (!own(S.jobs, id)) return notFound("There is no job " + id + " in this simulated fleet.");
     const job = S.jobs[id];
     fromJob = id;
-    m.range = m.range || "2h";
-    const el = h("div");
+    m.range = own(RANGES, m.range) ? m.range : "1h";
+    const el = h("div", { class: "jobpage" });
     const b = badge();
+    const sub = h("p", { class: "job-sub" });
     const meta = h("div", { class: "meta" });
     const sumBox = h("div", { class: "summary-box" });
     const whyBox = h("div", { class: "why-box" });
-    const k = { thr: kpi("Throughput"), step: kpi("Step time"), util: kpi("GPU utilization"), mem: kpi("Memory per GPU"), imb: kpi("Rank imbalance") };
-    const seg = h("div", { class: "seg", role: "group", "aria-label": "Time range" });
+    const seg = h("div", { class: "seg ak-seg", role: "group", "aria-label": "Time range" });
     const rangeBtns = {};
-    for (const [key, label] of [["2h", "Last 2 hours"], ["day", "Whole day"]]) {
-      rangeBtns[key] = h("button", { type: "button", "aria-pressed": "false", "data-key": "range-" + key, on: { click: () => { m.range = key; update(state); } } }, label);
+    for (const key of Object.keys(RANGES)) {
+      rangeBtns[key] = h("button", { type: "button", "aria-pressed": "false", "data-key": "range-" + key, on: { click: () => { m.range = key; update(state, true); } } }, RANGES[key][2]);
       seg.appendChild(rangeBtns[key]);
     }
-    const range = (st) => (m.range === "day" ? [S.start, S.end] : [Math.max(S.start, st.t - 7200), Math.max(S.start + 7200, st.t)]);
-    const marks = () => jobMarks(id);
-    const charts = [];
-    charts.push(chart({
-      title: "Throughput, samples per second",
-      legend: [{ cls: "", text: job.name }, { cls: "ref", text: "Normal pace" }],
-      range, marks,
-      get: (st, t0, t1) => {
-        const js = st.jobs[id];
-        return { lines: [{ points: S.series("throughput", id, t0, t1, 60) }], cur: { v: js.throughput, label: fmt(js.throughput), tone: js.pct < 0.95 ? "signal" : "" },
-          now: fmt(js.throughput) + " samples/s · " + pct(js.pct) + " of normal" };
-      },
-      domain: () => [0, job.base * 1.15], ticks: () => niceTicks(0, job.base * 1.15, 3), fmtTick: (v) => String(v),
-      refs: () => [{ y: job.base, label: "normal " + fmt(job.base) }],
-    }));
-    charts.push(chart({
-      title: "Rank imbalance, slowest rank's step time over the median",
-      legend: [{ cls: "", text: "Slowest rank ÷ median" }, { cls: "ref", text: "Perfectly even" }],
-      range, marks,
-      get: (st, t0, t1) => {
-        const js = st.jobs[id];
-        return { lines: [{ points: S.series("imbalance", id, t0, t1, 60) }], cur: { v: js.imbalance, label: js.imbalance ? js.imbalance.toFixed(2) + "×" : "" },
-          now: js.imbalance ? js.imbalance.toFixed(2) + "×" : "no steps completing" };
-      },
-      domain: () => [0.9, 1.4], ticks: () => [1, 1.1, 1.2, 1.3], fmtTick: (v) => v.toFixed(1) + "×",
-      refs: () => [{ y: 1, label: "even" }],
-    }));
-    const hotRank = job.slowRank ? job.slowRank.rank : null;
-    charts.push(chart({
-      title: "GPU utilization, every GPU of the job",
-      legend: hotRank !== null ? [{ cls: "hot", text: "The slow GPU, rank " + hotRank }, { cls: "thin", text: "Other GPUs" }] : [{ cls: "thin", text: "Each GPU" }],
-      note: "High utilization does not mean progress: in a stall the GPUs stay busy waiting on each other.",
-      range, marks,
-      get: (st, t0, t1) => {
-        const js = st.jobs[id];
-        const every = t1 - t0 > 4 * 3600 ? 300 : 60;
-        const all = S.rankSeries(id, t0, t1, every, "util");
-        const lines = all.filter((r) => r.rank !== hotRank).map((r) => ({ points: r.points, cls: "thin" }));
-        const hot = all.find((r) => r.rank === hotRank);
-        if (hot) lines.push({ points: hot.points, cls: "hot" });
-        return { lines, cur: { v: js.util, label: js.util === null ? "" : fmt(js.util) + "%" }, now: js.util === null ? "no data" : "average " + fmt(js.util) + "%" };
-      },
-      domain: () => [0, 105], ticks: () => [0, 50, 100], fmtTick: (v) => v + "%",
-    }));
+    // Pause is the clock's: the page's one simulated clock stops for every screen.
+    const pauseBtn = h("button", { type: "button", class: "btn", id: "job-pause", "data-key": "job-pause", on: { click: () => setPlaying(!clock.playing) } });
+    const clockNote = h("span", { class: "clock-note" });
+    const alertText = h("span");
+    const alertLink = h("a", { class: "alert-go", "data-key": "alert-go" }, "What happened");
+    const alert = h("p", { class: "alert-line", hidden: true }, alertText, alertLink);
+    const k = { step: kpi("Step time"), thr: kpi("Throughput"), slow: kpi("Slowest rank"), incs: kpi("Open incidents"), hot: kpi("Hottest GPU") };
+    const range = (st) => {
+      if (m.range === "day") return [S.start, S.end];
+      const span = RANGES[m.range][0];
+      return [Math.max(S.start, st.t - span), Math.max(S.start + span, st.t)];
+    };
+    const every = () => RANGES[m.range][1];
+    // One pass over the ranks' telemetry per range and moment, shared by every chart.
+    let telKey = null, tel = null;
+    const telAt = (t0, t1) => {
+      const key = [t0, t1, every()].join(",");
+      if (key !== telKey) { telKey = key; tel = S.telemetry(id, t0, t1, every()); }
+      return tel;
+    };
     const sr0 = job.slowRank;
-    if (sr0 && sr0.temp !== null) {
-      charts.push(chart({
-        title: "GPU temperature, the slow GPU and the others",
-        note: "The hot GPU lowers its clock, so its steps take longer and every other GPU waits for it.",
-        legend: [{ cls: "hot", text: "Rank " + sr0.rank + " GPU" }, { cls: "thin", text: "Other GPUs" }, { cls: "ref", text: sr0.tempLine + " °C line" }],
-        range, marks,
+    const hot = sr0 ? sr0.rank : null;
+    const marks = () => jobMarks(id);
+    const lines = (field) => tel.map((r, i) => ({ key: "r" + r.rank, label: "rank " + r.rank, tone: r.rank === hot ? "hot" : TONES[i % 3], points: r[field] }));
+    // The latest reading of a field: its highest value and the rank it is on.
+    const top = (field) => {
+      let best = null;
+      for (const r of tel) { const p = r[field][r[field].length - 1]; if (p && p[1] !== null && (!best || p[1] > best.v)) best = { v: p[1], rank: r.rank }; }
+      return best;
+    };
+    const topText = (field, unit, d) => { const x = top(field); return x ? "max " + fmt(x.v, d) + " " + unit + ", rank " + x.rank : "no reading"; };
+    const telChart = (title, field, unit, extra) => chart(Object.assign({ title, unit, height: 200, range, marks, keys: false, group: hover, readout: "max",
+      get: (st, t0, t1) => { telAt(t0, t1); return { step: every(), lines: lines(field), now: topText(field, unit, extra && extra.digits) }; } }, extra || {}));
+    // The shared crosshair: each chart's head reads the highest value at the pointer's time.
+    const hover = UI.hoverGroup((t, rows) => {
+      for (const c of six) {
+        const row = t === null ? null : rows.find((r) => r.title === c.title);
+        if (!row) { c.readout(null); continue; }
+        const best = row.values.reduce((a, v) => (a === null || v.value > a.value ? v : a), null);
+        c.readout(hhmm(t) + " · max " + fmt(best.value, row.digits) + " " + row.unit + ", " + best.label);
+      }
+    });
+    const legendRanks = hot !== null ? [{ cls: "hot", text: "Rank " + hot + ", the slow GPU" }, { cls: "", text: "Other ranks" }] : [{ cls: "", text: "One line per rank" }];
+    const stepChart = chart({ title: "Step time by rank", unit: "ms", height: 240, zero: false, range, marks, legend: legendRanks,
+      note: "Every step waits for the slowest rank, so the job's step time is the top line.",
+      get: (st, t0, t1) => {
+        telAt(t0, t1);
+        const js = st.jobs[id];
+        return { step: every(), lines: lines("stepMs"), now: js.stepTime ? fmt(js.stepTime * 1000) + " ms per step" : "no steps completing",
+          aria: js.stepTime ? "Now " + fmt(js.stepTime * 1000) + " ms per step." : "No steps completing." };
+      } });
+    const six = [
+      telChart("GPU temperature", "temp", "°C", { zero: false, legend: legendRanks }),
+      telChart("GPU utilization", "util", "%"),
+      telChart("GPU memory used", "mem", "GiB", { digits: 1 }),
+      telChart("GPU power draw", "power", "W"),
+      telChart("SM clock and throttling", "clock", "MHz", { zero: false }),
+      chart({ title: "Training throughput", unit: "samples/s", height: 200, range, marks, keys: false, group: hover, readout: "max",
         get: (st, t0, t1) => {
-          const all = S.rankSeries(id, t0, t1, t1 - t0 > 4 * 3600 ? 300 : 60, "temp");
-          const lines = all.filter((r) => r.rank !== sr0.rank).map((r) => ({ points: r.points, cls: "thin" }));
-          const hot = all.find((r) => r.rank === sr0.rank);
-          lines.push({ points: hot.points, cls: "hot" });
-          const cur = st.jobs[id].ranks.find((r) => r.rank === sr0.rank);
-          return { lines, cur: { v: cur.temp, label: fmt(cur.temp) + " °C", tone: cur.temp > sr0.tempLine ? "signal" : "" }, now: "rank " + sr0.rank + ": " + fmt(cur.temp) + " °C, clock " + fmt(cur.clock) + " MHz" };
-        },
-        domain: () => [30, 95], ticks: () => [40, 60, 80], fmtTick: (v) => v + "°",
-        refs: () => [{ y: sr0.tempLine, label: sr0.tempLine + " °C" }],
-      }));
-    } else if (sr0 && sr0.loaderWait !== null) {
-      charts.push(chart({
-        title: "Time spent waiting for input data, per rank",
+          const js = st.jobs[id];
+          return { step: every(), lines: [{ key: "thr", label: job.name, points: S.series("throughput", id, t0, t1, every()) }],
+            refs: [{ y: job.base, label: "normal " + fmt(job.base) }], now: fmt(js.throughput) + " samples/s, " + pct(js.pct) + " of normal" };
+        } }),
+    ];
+    // The references and the throttling band, on the charts they belong to.
+    if (sr0 && sr0.temp !== null) wrapGet(six[0], (d) => Object.assign(d, { refs: [{ y: sr0.tempLine, label: sr0.tempLine + " °C line" }] }));
+    wrapGet(six[2], (d) => Object.assign(d, { refs: [{ y: 80, label: "80 GiB per GPU" }] }));
+    const bands = S.throttleBands(id);
+    if (bands.length) wrapGet(six[4], (d, st) => Object.assign(d, { bands: bands.map((x) => ({ from: x.from, to: Math.min(x.to, st.t), label: x.label })).filter((x) => x.to > x.from) }));
+    function wrapGet(c, add) { const get = c.opts.get; c.opts.get = (st, t0, t1) => add(get(st, t0, t1), st); }
+    // Why it slowed: how uneven the ranks are, and (for an input stall) the wait itself.
+    const why = [chart({
+      title: "Rank imbalance, slowest rank's step time over the median", unit: "×", height: 180, zero: false, digits: 2, range, marks, keys: false,
+      legend: [{ cls: "", text: "Slowest rank ÷ median" }, { cls: "ref", text: "Perfectly even" }],
+      get: (st, t0, t1) => {
+        const js = st.jobs[id];
+        return { step: every(), lines: [{ key: "imb", label: "imbalance", points: S.series("imbalance", id, t0, t1, every()) }], refs: [{ y: 1, label: "even" }],
+          now: js.imbalance ? js.imbalance.toFixed(2) + "×" : "no steps completing" };
+      } })];
+    if (sr0 && sr0.loaderWait !== null) {
+      why.push(chart({
+        title: "Time spent waiting for input data, per rank", unit: "%", height: 180, range, marks, keys: false,
         note: "One rank waits for its input loader while the others keep their GPUs busy, so every step waits for it.",
         legend: [{ cls: "hot", text: "Rank " + sr0.rank }, { cls: "thin", text: "Other ranks" }, { cls: "ref", text: pct(sr0.loaderLine) + " line" }],
-        range, marks,
         get: (st, t0, t1) => {
-          const all = S.rankSeries(id, t0, t1, t1 - t0 > 4 * 3600 ? 300 : 60, "loaderWait");
-          const lines = all.filter((r) => r.rank !== sr0.rank).map((r) => ({ points: r.points.map(([t, v]) => [t, v === null ? null : v * 100]), cls: "thin" }));
-          const hot = all.find((r) => r.rank === sr0.rank);
-          lines.push({ points: hot.points.map(([t, v]) => [t, v === null ? null : v * 100]), cls: "hot" });
+          const all = S.rankSeries(id, t0, t1, every(), "loaderWait");
           const cur = st.jobs[id].ranks.find((r) => r.rank === sr0.rank);
-          return { lines, cur: { v: cur.loaderWait * 100, label: pct(cur.loaderWait), tone: cur.loaderWait > sr0.loaderLine ? "signal" : "" }, now: "rank " + sr0.rank + ": " + pct(cur.loaderWait) };
-        },
-        domain: () => [0, 50], ticks: () => [0, 20, 40], fmtTick: (v) => v + "%",
-        refs: () => [{ y: sr0.loaderLine * 100, label: pct(sr0.loaderLine) }],
-      }));
-    } else {
-      charts.push(chart({
-        title: "Memory used, average per GPU",
-        legend: [{ cls: "", text: "Memory used" }, { cls: "ref", text: "80 GB per GPU" }],
-        range, marks,
-        get: (st, t0, t1) => {
-          const all = S.rankSeries(id, t0, t1, t1 - t0 > 4 * 3600 ? 300 : 60, "mem");
-          const n = all.length;
-          const pts = all[0].points.map((p, i) => [p[0], all.reduce((s, r) => s + (r.points[i][1] || 0), 0) / n]);
-          const v = st.jobs[id].mem;
-          return { lines: [{ points: pts }], cur: { v, label: fmt(v) + " GB" }, now: fmt(v) + " of 80 GB" };
-        },
-        domain: () => [0, 90], ticks: () => [0, 40, 80], fmtTick: (v) => v + "",
-        refs: () => [{ y: 80, label: "80 GB" }],
-      }));
+          return { step: every(), lines: all.map((r, i) => ({ key: "r" + r.rank, label: "rank " + r.rank, tone: r.rank === sr0.rank ? "hot" : TONES[i % 3],
+            points: r.points.map(([t, v]) => [t, v === null ? null : v * 100]) })), refs: [{ y: sr0.loaderLine * 100, label: pct(sr0.loaderLine) + " line" }],
+            now: cur.loaderWait === null ? "no reading" : "rank " + sr0.rank + ": " + pct(cur.loaderWait) };
+        } }));
     }
-    // The throughput chart leads; the signal that explains a slowdown (temperature or input
-    // wait) sits beside it. The other metrics follow.
-    const explainer = sr0 && (sr0.temp !== null || sr0.loaderWait !== null) ? charts[3] : null;
-    const lead = [charts[0]].concat(explainer ? [explainer] : []);
-    const rest = charts.filter((c) => lead.indexOf(c) < 0);
-    // Resources.
-    const res = h("div", { class: "res" });
-    const resNodes = {};
+    const charts = [stepChart].concat(six, why);
+    // Where it runs: this job's nodes (before and after a move) on the kit's grid.
     const allHosts = Array.from(new Set(job.hosts.concat(job.moved ? job.moved.to : [])));
-    for (const host of allHosts) {
-      const cells = h("div", { class: "cells" });
-      for (let i = 0; i < 8; i++) {
-        const gid = "gpu:" + host + "/" + i;
-        cells.appendChild(h("a", { class: "cell", href: nodeLink(host), "data-gid": gid, "data-key": "res-" + gid }));
-      }
-      const note = h("p", { class: "node-note" });
-      const card = h("div", { class: "node" }, h("div", { class: "node-head" }, h("a", { href: nodeLink(host), "data-key": "res-node-" + host }, "node " + host), h("span", { class: "node-job faint" }, "rack " + S.hostRack[host] + ", switch " + S.rackLeaf[S.hostRack[host]])), cells, note);
-      resNodes[host] = { card, cells, note };
-      res.appendChild(card);
-    }
-    const resNote = h("p", { class: "muted", style: null });
-    // The hardware behind the job's problem, in words, each a link to its node detail.
+    const res = clusterGrid({ hosts: () => allHosts, onPick: (gid) => { location.hash = gpuLink(gid); }, keyPrefix: "res-node-", label: "This job's nodes and GPUs" });
+    const resNote = h("p", { class: "muted res-note" });
+    // The hardware behind the job's problem, in words, each a link to its GPU's record or node.
     const hwNow = h("p", { class: "hw-now", tabindex: "-1" });
     let hwKey = null;
     function hwParts(st) {
@@ -1403,7 +1261,7 @@
           if (g.job !== id && js.hosts.indexOf(host) < 0 && !(job.moved && job.moved.from.indexOf(host) >= 0)) continue;
           const rank = js.ranks.find((r) => r.gpu === g.id);
           const slow = js.slowRank && js.slowRank.gpu === g.id;
-          parts.push({ key: g.id, href: nodeLink(host, g.index), text: "GPU " + g.index + " on " + host,
+          parts.push({ key: g.id, href: gpuLink(g.id), text: "GPU " + g.index + " on " + host,
             after: g.state === "lost" ? " stopped responding." : slow ? (rank ? ", rank " + rank.rank : "") + ", is the slow GPU." : " reported an error." });
         }
         const hs = st.hosts[host];
@@ -1439,20 +1297,51 @@
       empty: () => h("li", { class: "empty" }, "No incidents for this job so far today."),
     });
     el.append(
-      crumbs([{ href: "#/fleet", text: "Overview" }, { text: job.name }]),
-      h("div", { class: "job-head" }, heading(job.name), b),
-      meta, sumBox,
-      section("Performance", seg, h("div", { class: "lead-charts" + (explainer ? "" : " one") }, lead.map((c) => h("div", { class: "panel chart-box" }, c.el))), whyBox),
-      section("Where it runs", "The nodes and GPUs this job uses. Select a node or GPU for its readings.", hwNow, res, resNote),
-      section("Other metrics", "Latest values, then their history.", h("div", { class: "kpis" }, Object.values(k).map((x) => x.el)),
-        h("div", { class: "charts" }, rest.map((c) => h("div", { class: "panel chart-box" }, c.el)))),
+      crumbs([{ href: "#/fleet", text: "Cluster" }, { text: job.name }]),
+      h("div", { class: "job-head" }, heading(job.name), h("span", { class: "id-chip" }, "job " + id), b),
+      sub, meta, h("div", { class: "job-controls" }, seg, pauseBtn, clockNote), alert, sumBox,
+      h("div", { class: "kpis job-kpis ak-strip" }, Object.values(k).map((x) => x.el)),
+      section("Step time by rank", "Each rank's time per training step, simulated from the job's throughput and its recorded slow rank.",
+        h("div", { class: "lead-charts one" }, h("div", { class: "panel chart-box" }, stepChart.el)), whyBox),
+      h("section", { class: "section telemetry", "aria-labelledby": "tel-title" },
+        h("div", { class: "section-head" }, h("h2", { id: "tel-title" }, "Telemetry history (simulated)"),
+          h("p", null, "Simulated: synthesized by this page around the snapshot's values. One line per rank's GPU; the charts share the range and the crosshair.")),
+        h("div", { class: "tel-grid" }, six.map((c) => h("div", { class: "panel chart-box" }, c.el)))),
+      section("Why it slowed", "How uneven the ranks are" + (why.length > 1 ? ", and the input wait behind it." : "."),
+        h("div", { class: "charts" }, why.map((c) => h("div", { class: "panel chart-box" }, c.el)))),
+      section("Where it runs", "The nodes and GPUs this job uses. Select a GPU for its record, or a node for its readings.", hwNow, res.el, resNote),
       section("Incidents", "What Artemis found and what it did.", incList),
     );
-    function update(st) {
+    function alertOf(st, js) {
+      const inc = st.incidents.filter((i) => i.jobs.indexOf(id) >= 0 && i.policy !== "none").slice(-1)[0] || null;
+      const sr = js.slowRank;
+      let text = null;
+      if (js.health === "slowed" && sr && js.imbalance) text = "Rank " + sr.rank + " is running " + Math.round((js.imbalance - 1) * 100) + "% slower than its peers";
+      else if (js.health === "slowed") text = "Training is " + Math.round((1 - js.pct) * 100) + "% slower than its normal pace";
+      else if (js.health === "stalled") text = "Training stalled at " + hhmm(js.since);
+      else if (js.health === "stopped") text = "The job failed at " + hhmm(js.since);
+      else if (js.health === "restarting") text = "Artemis restarted the job at " + hhmm(js.since);
+      else if (js.health === "checking") text = "Artemis is checking that the job is back to its normal pace";
+      return text ? { text, inc } : null;
+    }
+    function update(st, force) {
       const js = st.jobs[id];
       updateBadge(b, js.health);
-      const metaText = ["job " + id, "owner " + js.user, js.gpus + " GPUs on " + js.hosts.length + " nodes"];
+      setText(sub, "Simulated " + js.gpus + "-GPU job, not live telemetry");
+      const metaText = ["owner " + js.user, js.gpus + " GPUs on " + js.hosts.length + " nodes"];
       if (meta.textContent !== metaText.join("")) meta.replaceChildren(...metaText.map((x) => h("span", null, x)));
+      for (const key in rangeBtns) setAttr(rangeBtns[key], "aria-pressed", m.range === key ? "true" : "false");
+      setText(pauseBtn, clock.playing ? "Pause" : "Play");
+      setAttr(pauseBtn, "aria-label", clock.playing ? "Pause the simulated clock" : "Play the simulated clock");
+      setText(clockNote, "Simulated clock " + hhmm(st.t) + " UTC" + (clock.playing ? "" : ", paused"));
+      const al = alertOf(st, js);
+      if (alert.hidden === !!al) alert.hidden = !al;
+      if (al) {
+        setText(alertText, al.text + ". ");
+        setClass(alert, "alert-line" + (HEALTH[js.health].tone ? " " + HEALTH[js.health].tone : ""));
+        alertLink.hidden = !al.inc;
+        if (al.inc) setAttr(alertLink, "href", incLink(al.inc.id));
+      }
       const sm = jobSummary(st, id);
       setClass(sumBox, "summary-box" + (sm.tone ? " " + sm.tone : ""));
       const said = [sm.lead, sm.now.join(" ")].join("|");
@@ -1460,38 +1349,24 @@
         sumBox.setAttribute("data-text", said);
         sumBox.replaceChildren(h("p", { class: "lead" }, sm.lead), sm.now.length ? h("p", { class: "now" }, sm.now.join(" ")) : "");
       }
-      const why = sm.why.join(" ");
-      whyBox.hidden = !why;
-      if (whyBox.getAttribute("data-text") !== why) {
-        whyBox.setAttribute("data-text", why);
-        whyBox.replaceChildren(h("span", { class: "label" }, "Why"), h("p", null, why));
+      const whyText = sm.why.join(" ");
+      whyBox.hidden = !whyText;
+      if (whyBox.getAttribute("data-text") !== whyText) {
+        whyBox.setAttribute("data-text", whyText);
+        whyBox.replaceChildren(h("span", { class: "label" }, "Why"), h("p", null, whyText));
       }
+      const normalMs = (js.samplesPerStep / js.base) * 1000;
+      setKpi(k.step, js.stepTime ? fmt(js.stepTime * 1000) : "none", js.stepTime ? "ms" : "", js.stepTime ? "normal " + fmt(normalMs) + " ms for " + js.samplesPerStep + " samples" : "no steps completing",
+        js.stepTime && js.stepTime * 1000 > normalMs * 1.05 ? "signal" : "");
       setKpi(k.thr, fmt(js.throughput), "samples/s", pct(js.pct) + " of normal " + fmt(js.base), js.pct < 0.95 ? "signal" : "");
-      setKpi(k.step, js.stepTime ? js.stepTime.toFixed(2) : "none", js.stepTime ? "s" : "", js.stepTime ? "normal " + (js.samplesPerStep / js.base).toFixed(2) + " s for " + js.samplesPerStep + " samples" : "no steps completing");
-      // An average near 100% hides one waiting GPU; name it when there is one.
-      const srk = js.slowRank ? js.ranks.find((r) => r.rank === js.slowRank.rank) : null;
-      setKpi(k.util, js.util === null ? "none" : fmt(js.util), js.util === null ? "" : "%", srk && srk.util !== null && js.slowRank.peerUtil !== null ?
-        "average; rank " + js.slowRank.rank + " at " + fmt(srk.util) + "%, the others near " + fmt(js.slowRank.peerUtil) + "%" : "average over " + js.ranks.filter((r) => r.util !== null).length + " GPUs");
-      setKpi(k.mem, fmt(js.mem), "GB", "of 80 GB per GPU");
-      setKpi(k.imb, js.imbalance ? js.imbalance.toFixed(2) : "none", js.imbalance ? "×" : "", js.slowRank && js.imbalance > 1.08 ? "rank " + js.slowRank.rank + " is the slowest" : "slowest rank over the median", js.imbalance > 1.08 ? "signal" : "");
-      for (const key in rangeBtns) setAttr(rangeBtns[key], "aria-pressed", m.range === key ? "true" : "false");
-      for (const c of charts) c.update(st);
+      setKpi(k.slow, js.imbalance ? js.imbalance.toFixed(2) : "none", js.imbalance ? "×" : "", js.slowRank && js.imbalance > 1.08 ? "rank " + js.slowRank.rank + " is the slowest" : "slowest rank over the median", js.imbalance > 1.08 ? "signal" : "");
+      const open = st.incidents.filter((i) => i.jobs.indexOf(id) >= 0 && i.stage !== "recovered" && i.stage !== "no_action");
+      setKpi(k.incs, String(open.length), "", open.length ? STAGE[open[open.length - 1].stage].word : "none open", open.length ? "signal" : "");
+      const warm = js.ranks.filter((r) => r.temp !== null && r.state !== "lost").sort((a, c) => c.temp - a.temp)[0];
+      setKpi(k.hot, warm ? fmt(warm.temp) : "none", warm ? "°C" : "", warm ? "rank " + warm.rank + ", GPU " + S.gpuById[warm.gpu].index + " on " + warm.host : "no reading", warm && warm.temp >= 85 ? "signal" : "");
+      for (const c of charts) c.update(st, force);
       incs.sync(st.incidents.filter((i) => i.jobs.indexOf(id) >= 0));
-      const now = new Set(js.hosts);
-      for (const host of allHosts) {
-        const r = resNodes[host];
-        const active = now.has(host);
-        setClass(r.card, "node" + (active ? "" : " gone"));
-        for (const c of r.cells.children) {
-          const g = st.gpus[c.getAttribute("data-gid")];
-          const rank = active ? js.ranks.find((x) => x.gpu === g.id) : null;
-          setClass(c, "cell" + (g.state !== "ok" ? " " + g.state : ""));
-          setAttr(c, "aria-label", "GPU " + g.index + " on " + host + (rank ? ", rank " + rank.rank : "") + ", " + CELL_WORDS[g.state]);
-        }
-        const hs = st.hosts[host];
-        setText(r.note, !active ? (hs.state === "drained" ? "no longer used · drained by Artemis" : "no longer used") : hs.state === "drained" ? "drained" : hs.state === "network_down" ? "network down" : "");
-        setClass(r.note, "node-note" + (hs.state === "drained" ? " ctl" : ""));
-      }
+      res.update(st);
       const hp = hwParts(st);
       const hk = hp.map((x) => x.key + x.after).join("|");
       if (hk !== hwKey) {
@@ -1520,7 +1395,7 @@
     const tabs = h("nav", { class: "tabs", "aria-label": "Incident views" },
       TABS.map(([k, label]) => h("a", { href: incLink(iid, k), "aria-current": k === tab ? "page" : null, "data-key": "tab-" + k }, label)));
     const body = h("div", { class: "section" });
-    const crumbList = [{ href: "#/fleet", text: "Overview" }];
+    const crumbList = [{ href: "#/fleet", text: "Cluster" }];
     if (jobId) crumbList.push({ href: jobLink(jobId), text: S.jobName[jobId] });
     crumbList.push(tab ? { href: incLink(iid), text: "What happened" } : { text: "What happened" });
     if (tab) crumbList.push({ text: TABS.find(([k]) => k === tab)[1] });
@@ -1740,11 +1615,11 @@
     function hardwareOf(subject) {
       const kind = subject.split(":")[0], rest = S.short(subject);
       const gm = /^([^/]+)\/(\d+)$/.exec(rest);
-      if (kind === "gpu" && gm) return { key: subject, host: gm[1], gpu: gm[2], href: nodeLink(gm[1], gm[2]), text: "GPU " + gm[2] + " on " + gm[1] };
+      if (kind === "gpu" && gm) return { key: subject, host: gm[1], gpu: gm[2], href: S.gpuById[subject] ? gpuLink(subject) : nodeLink(gm[1], gm[2]), text: "GPU " + gm[2] + " on " + gm[1] };
       if (kind === "rank" && gm && own(S.jobs, gm[1])) {
         const r = S.jobs[gm[1]].ranks.find((x) => x.rank === Number(gm[2]));
         const p = r ? /^gpu:([^/]+)\/(\d+)$/.exec(r.gpu) : null;
-        if (p) return { key: r.gpu, host: p[1], gpu: p[2], href: nodeLink(p[1], p[2]), text: "GPU " + p[2] + " on " + p[1], job: S.jobName[gm[1]] + " rank " + gm[2] };
+        if (p) return { key: r.gpu, host: p[1], gpu: p[2], href: S.gpuById[r.gpu] ? gpuLink(r.gpu) : nodeLink(p[1], p[2]), text: "GPU " + p[2] + " on " + p[1], job: S.jobName[gm[1]] + " rank " + gm[2] };
       }
       if (kind === "host" || kind === "nic" || kind === "pcie_switch") {
         const host = rest.split("/")[0];
@@ -1813,12 +1688,15 @@
     for (let i = 0; i < 8; i++) {
       const tds = Array.from({ length: 8 }, () => h("td"));
       tds[1].className = "txt"; tds[2].className = "txt";
+      const gid = "gpu:" + host + "/" + i;
+      // Each GPU's index opens its record (by UUID, so its history follows the device).
+      if (S.gpuById[gid]) tds[0].appendChild(h("a", { href: gpuLink(gid), "data-key": "gpu-rec-" + gid, "aria-label": "GPU " + i + " on " + host + ", open its record" }, String(i)));
       const tr = h("tr", { "data-gpu": i, "aria-current": i === pickGpu ? "true" : null }, tds);
       rows.push({ tr, tds });
       tbody.appendChild(tr);
     }
     el.append(crumbHolder, title, sub,
-      section("GPUs", (pickGpu !== null ? "GPU " + pickGpu + " is marked. " : "") + "Live readings at the simulated time. Utilization, temperature, clock and memory are synthesized around the snapshot's values.",
+      section("GPUs", (pickGpu !== null ? "GPU " + pickGpu + " is marked. " : "") + "Readings at the simulated time. Utilization, temperature, clock and memory are synthesized around the snapshot's values. Select a GPU's index for its record.",
         h("div", { class: "table-wrap" }, h("table", { class: "grid-table" },
           h("thead", null, h("tr", null, ["GPU", "Job and rank", "State", "Util", "Temp", "Clock", "Memory", "Input wait"].map((x) => h("th", { class: "label", scope: "col" }, x)))), tbody))),
       section("Model", null, h("p", { class: "muted" }, (DATA.topology.hosts.find((x) => x.name === host) || {}).model || "")));
@@ -1827,7 +1705,7 @@
       const hs = st.hosts[host];
       if (crumbJob !== hs.job) {
         crumbJob = hs.job;
-        const items = [{ href: "#/fleet", text: "Overview" }];
+        const items = [{ href: "#/fleet", text: "Cluster" }];
         if (hs.job) items.push({ href: jobLink(hs.job), text: S.jobName[hs.job] });
         items.push({ text: "Node " + host });
         keepFocus(crumbHolder, () => crumbHolder.replaceChildren(crumbs(items, "crumb-")));
@@ -1838,10 +1716,10 @@
       hs.gpus.forEach((g, i) => {
         const r = rows[i];
         const rk = job ? job.ranks.find((x) => x.gpu === g.id) : null;
-        const cells = [String(g.index), job ? job.name + (rk ? ", rank " + rk.rank : "") : "none", CELL_WORDS[g.state],
+        const cells = [null, job ? job.name + (rk ? ", rank " + rk.rank : "") : "none", S.cellAt(st, g.id).words,
           rk && rk.util !== null ? fmt(rk.util) + "%" : "", rk && rk.temp !== null ? fmt(rk.temp) + " °C" : "", rk && rk.clock !== null ? fmt(rk.clock) + " MHz" : "",
           rk && rk.mem !== null ? fmt(rk.mem) + " GB" : "", rk && rk.loaderWait !== null ? pct(rk.loaderWait) : ""];
-        cells.forEach((c, j) => setText(r.tds[j], c));
+        cells.forEach((c, j) => { if (c !== null) setText(r.tds[j], c); });
         setClass(r.tr, (g.state === "culprit" || g.state === "lost" ? "hot" : "") + (g.index === pickGpu ? " picked" : ""));
       });
     }
@@ -1889,7 +1767,7 @@
       update: () => {},
       empty: () => h("li", { class: "empty" }, "No tickets yet. Artemis opens one when work needs a person."),
     });
-    el.append(crumbs([{ href: "#/fleet", text: "Overview" }, { text: "Tickets" }]), title, sub, h("div", { class: "section" }, list),
+    el.append(crumbs([{ href: "#/fleet", text: "Cluster" }, { text: "Tickets" }]), title, sub, h("div", { class: "section" }, list),
       h("p", { class: "faint section" }, "The queue is simulated: nobody received these tickets. Artemis ranked them with code inputs (human needed, GPU-hours lost). A scripted ranker, not AI, ran beside it."));
     let scrolled = false;
     function update(st) {
@@ -1914,7 +1792,7 @@
     const list = h("ul", { class: "feed long panel box" });
     const hint = h("p", { class: "hold", "aria-live": "off" });
     const cl = calmList(list, feedOpts(hint));
-    el.append(crumbs([{ href: "#/fleet", text: "Overview" }, { text: "Activity" }]), heading("Fleet activity"),
+    el.append(crumbs([{ href: "#/fleet", text: "Cluster" }, { text: "Activity" }]), heading("Fleet activity"),
       h("p", { class: "lede" }, "Everything that happened today up to the simulated time, newest first. Green is what Artemis did, orange is a problem or work for a person."),
       h("div", { class: "section" }, list, hint));
     return { el, update: (st) => cl.sync(st.activity.slice().reverse()) };
@@ -1924,7 +1802,7 @@
     const a = DATA.about;
     const ul = (xs) => h("ul", null, xs.map((x) => h("li", null, x)));
     const el = h("div", { class: "prose" },
-      crumbs([{ href: "#/fleet", text: "Overview" }, { text: "About" }]),
+      crumbs([{ href: "#/fleet", text: "Cluster" }, { text: "About" }]),
       heading("About this demo"),
       h("p", null, "This is a simulated Artemis fleet: " + DATA.fleet.jobs.length + " training jobs on " + DATA.topology.gpus.length + " GPUs in " + DATA.topology.racks.length +
         " racks, over one day. Nothing here touches real hardware. Nothing you click changes anything outside this page."),
@@ -1934,6 +1812,7 @@
       h("p", null, "Incidents, diagnoses, actions, recovery checks, tickets, jobs, users, hosts and GPUs come from a frozen snapshot of the Artemis fleet service. Generator " + a.generator +
         ", seed " + a.seed + ". " + a.built_from.command + ". Step 2 code " + a.built_from.step2.branch + " at " + a.built_from.step2.head.slice(0, 12) + "."),
       h("p", null, "Metric curves are synthesized by this page, seeded and deterministic. Each job's normal pace, the moment it slowed and how far, and its pace after a fix come from the snapshot's recorded samples and recovery checks. The slow GPU's numbers are the incident's facts."),
+      h("p", null, "Each GPU's benchmark and service history are synthesized by this page too: a simulated matched GEMM benchmark twice a week for the 8 weeks before the day, and simulated service records (what Artemis did that day, plus dated examples for some GPUs). A benchmark decline is a lead for a person; no cause is confirmed. The fleet's size is illustrative and is no real cluster's."),
       h("h2", null, "What is simulated"), ul(a.simulated),
       h("h2", null, "Scripted, not AI"), ul(a.scripted),
       h("h2", null, "What it is not"), ul(a.not),
@@ -1957,12 +1836,15 @@
   }
 
   function notFound(text) {
-    const el = h("div", null, crumbs([{ href: "#/fleet", text: "Overview" }, { text: "Not found" }]), heading("Not found"), h("p", { class: "lede" }, text));
+    const el = h("div", null, crumbs([{ href: "#/fleet", text: "Cluster" }, { text: "Not found" }]), heading("Not found"), h("p", { class: "lede" }, text));
     return { el, update: () => {} };
   }
 
   // ---- Router.
-  const NAV = { fleet: "fleet", job: "fleet", incident: "fleet", node: "fleet", tickets: "tickets", activity: "activity", about: "about" };
+  const NAV = { fleet: "fleet", cluster: "fleet", gpu: "fleet", job: "fleet", incident: "fleet", node: "fleet", tickets: "tickets", activity: "activity", about: "about" };
+  // The cluster screen and a GPU's record are one screen, and share one memory.
+  const CLUSTER = new Set(["fleet", "cluster", "gpu"]);
+  const memoKey = (r) => (CLUSTER.has(r.name) ? "#/fleet" : r.key);
   function parse(hash) {
     const parts = (hash || "").replace(/^#\/?/, "").split("/").filter(Boolean).map((p) => { try { return decodeURIComponent(p); } catch { return p; } });
     if (!parts.length) return null;
@@ -1977,8 +1859,21 @@
     const r = parse(root.location.hash);
     if (!r) { root.location.replace("#/fleet"); return; }
     if (["job", "incident", "node"].indexOf(r.name) < 0) fromJob = null;
+    const uuid = r.name === "gpu" ? r.args[0] : null;
+    // Between the cluster and a GPU's record the screen stays: the record opens (focus on its
+    // heading, scrolled into view) or closes (focus back on the GPU's square).
+    if (view && view.select && currentRoute && CLUSTER.has(currentRoute.name) && CLUSTER.has(r.name) && (!uuid || S.gpuByUuid[uuid])) {
+      currentRoute = r;
+      main().setAttribute("data-route", r.key);
+      const was = view.select(uuid);
+      view.update(state);
+      paintNav();
+      if (uuid) view.focusRecord();
+      else if (was) view.focusCell(was);
+      return;
+    }
     if (view && currentRoute) {
-      const m = memo[currentRoute.key] || (memo[currentRoute.key] = {});
+      const m = memo[memoKey(currentRoute)] || (memo[memoKey(currentRoute)] = {});
       Object.assign(m, view.save ? view.save() : {});
       m.scroll = root.scrollY;
       const a = doc.activeElement;
@@ -1986,7 +1881,7 @@
       // Safari does not focus a link or button on a mouse click; use the item clicked last.
       m.focus = keyed && main().contains(keyed) ? keyed.getAttribute("data-key") : (a === doc.body || a === main()) ? lastClicked : null;
     }
-    const m = memo[r.key] || (memo[r.key] = {});
+    const m = memo[memoKey(r)] || (memo[memoKey(r)] = {});
     currentRoute = r;
     view = VIEWS[r.name](r.args, m);
     main().replaceChildren(view.el);
@@ -1999,8 +1894,9 @@
     root.scrollTo(0, back ? m.scroll : 0);
     if (!first) {
       const target = m.focus ? main().querySelector('[data-key="' + cssEscape(m.focus) + '"]') : null;
-      (target || h1 || main()).focus({ preventScroll: true });
-      if (back) root.scrollTo(0, m.scroll);
+      if (uuid && view.focusRecord) view.focusRecord();
+      else if (!target && m.cellFocus && view.focusCell) { view.focusCell(m.cellFocus); if (back) root.scrollTo(0, m.scroll); }
+      else { (target || h1 || main()).focus({ preventScroll: true }); if (back) root.scrollTo(0, m.scroll); }
     }
     first = false;
   }
