@@ -8,18 +8,19 @@
 <meta name="color-scheme" content="dark">
 <title>Artemis fleet demo (simulated)</title>
 <link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="artemis-ui.css">
 <link rel="stylesheet" href="demo.css">
 </head>
 <body>
 <button type="button" class="skip" id="skip">Skip to content</button>
 <header class="top">
   <div class="bar">
-    <a class="brand" href="#/fleet" aria-label="Artemis fleet demo, overview">
+    <a class="brand" href="#/fleet" aria-label="Artemis fleet demo, cluster">
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M17.9 2.63A13.5 13.5 0 1 0 28.91 19.94A10.5 10.5 0 1 1 17.9 2.63Z"/><circle cx="21" cy="13" r="3.2" fill="#ee5c36"/></svg>
       <span class="brand-word">ARTEMIS</span><span class="brand-sub">Fleet demo</span>
     </a>
     <nav class="nav" aria-label="Views">
-      <a href="#/fleet" data-nav="fleet">Overview</a>
+      <a href="#/fleet" data-nav="fleet">Cluster</a>
       <a href="#/tickets" data-nav="tickets">Tickets <span class="count" id="nav-tickets"></span></a>
       <a href="#/activity" data-nav="activity">Activity</a>
       <a href="#/about" data-nav="about">About</a>
@@ -46,12 +47,14 @@
 <div id="announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <footer class="foot">
   <p>Everything here is simulated from a frozen snapshot of the Artemis fleet service. Artemis diagnoses with its rule ranking. A scripted test model runs beside it, is not AI and does not act. No probabilities or confidence are shown.</p>
+  <p>Illustrative service and benchmark records: every GPU's benchmark history and service record is synthesized by this page.</p>
   <p id="disclosure" class="disclosure" hidden>This demo records visits and clicks (IP address, approximate location, browser, pages viewed) to learn how it is used.</p>
 </footer>
 <noscript><p class="noscript">This demo needs JavaScript. Everything in it is simulated.</p></noscript>
 <script src="demo-data.js"></script>
 <script src="demo-config.js"></script>
 <script src="demo-events.js"></script>
+<script src="artemis-ui.js"></script>
 <script src="scenario.js"></script>
 <script src="demo.js"></script>
 </body>

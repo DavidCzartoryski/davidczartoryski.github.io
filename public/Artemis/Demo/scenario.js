@@ -558,7 +558,7 @@
       // Installed is not allocated: say how many GPUs the jobs hold and how many have none.
       out.push({ id: "start", t: START, title: "A normal night",
         text: fleetJobs + " training jobs run on " + allocated + " of the fleet's " + gpuCount + " GPUs. The other " + (gpuCount - allocated) + " have no job. Every job trains at its normal pace.",
-        go: "#/fleet", goLabel: "Fleet overview" });
+        go: "#/fleet", goLabel: "Cluster overview" });
       if (xid) {
         const jid = xid.jobs[0];
         const j = jobs[jid];
@@ -597,10 +597,12 @@
         const j = jobs[jid];
         const sr = j.slowRank;
         const v = thermal.verify[0];
+        // The thermal step opens the hot GPU's own record (its UUID, not its node index).
+        const hot = data.topology.gpus.find((g) => g.id === (sr && sr.gpu));
         if (sr) out.push({ id: "slowdown", t: sr.at, title: "A slowdown develops", job: jid, inc: thermal.id,
           text: gpuLabel(sr.gpu) + " heats up to " + sr.temp + " °C and drops its clock to " + sr.clock + " MHz. Every step of " + j.name +
             " waits for that GPU, so the whole job slows by about " + Math.round(sr.loss) + "%.",
-          go: "#/job/" + jid, goLabel: "Open " + j.name });
+          go: hot ? "#/gpu/" + hot.uuid : "#/job/" + jid, goLabel: hot ? "Open the hot GPU" : "Open " + j.name });
         const rb = thermal.actions.find((a) => a.fix === "rebalance_work");
         const cool = thermal.approvals[0];
         if (rb) out.push({ id: "mitigate", t: landAt(rb.tShow, cool && cool.tShow), title: "Work moves off the hot GPU", job: jid, inc: thermal.id,
@@ -737,7 +739,42 @@
         if (sr.util !== null && sr.loaderWait === null && t >= sr.from) out.util = sr.util + n("u", 1);
       }
       out.util = out.util === null ? null : clamp(out.util, 0, 100);
+      out.power = powerOf(gid, out.util, out.clock) + n("p", 2.5);
       return out;
+    }
+
+    // ---- GPU levels: each GPU's snapshot medians (data.gpus, from its DCGM scrapes). A GPU
+    // the snapshot saw busy keeps its own busy power and clock; one it saw idle (a spare
+    // node) borrows the fleet's busy medians when the scenario gives it work, and the reverse.
+    const gpuById = {}, gpuByUuid = {};
+    for (const g of data.topology.gpus) { gpuById[g.id] = g; gpuByUuid[g.uuid] = g; }
+    const MED = data.gpus || {};
+    const medOf = (gid) => (gpuById[gid] && MED[gpuById[gid].uuid]) || {};
+    const medAll = Object.values(MED);
+    const seenBusy = (m) => typeof m.util_pct === "number" && m.util_pct > 50;
+    const REF = {
+      busyPower: median(medAll.filter(seenBusy).map((m) => m.power_w)) || 320,
+      idlePower: median(medAll.filter((m) => !seenBusy(m)).map((m) => m.power_w)) || 60,
+      busyClock: median(medAll.filter(seenBusy).map((m) => m.sm_clock_mhz)) || 1400,
+      idleTemp: median(medAll.filter((m) => !seenBusy(m)).map((m) => m.temp_c)) || 35,
+    };
+    function levelsOf(gid) {
+      const m = medOf(gid), busy = seenBusy(m);
+      return {
+        pBusy: busy ? m.power_w : REF.busyPower, pIdle: busy ? REF.idlePower : (m.power_w || REF.idlePower),
+        clockBusy: busy ? m.sm_clock_mhz : REF.busyClock, tIdle: busy ? m.temp_c - 22 : (m.temp_c || REF.idleTemp),
+      };
+    }
+    // Power: the GPU's idle level plus its busy level's excess, scaled by utilization and by
+    // its clock against its busy clock (a throttled GPU draws less).
+    function powerOf(gid, util, clock) {
+      if (util === null || clock === null) return null;
+      const L = levelsOf(gid);
+      return L.pIdle + (L.pBusy - L.pIdle) * clamp(util / 100, 0, 1) * clamp(clock / L.clockBusy, 0, 1.05);
+    }
+    // No fresh telemetry from a node whose network is down or dropping links.
+    function staleAt(host, t) {
+      return hostMarks.some((m) => m.host === host && t >= m.from && t < m.to && (m.state === "network_down" || m.state === "flapping"));
     }
 
     // Slowest rank's step time over the median rank's (1.0 is perfectly even).
@@ -984,7 +1021,8 @@
     function rankSeries(id, t0, t1, every, field) {
       const ts = grid(Math.max(t0, START), t1, every || MINUTE);
       const job = jobs[id];
-      return job.ranks.map((r) => ({ rank: r.rank, points: ts.map((x) => [x, rankAt(id, r, x)[field]]) }));
+      // stepMs: each rank's step time (rankStepMs); every other field is rankAt's reading.
+      return job.ranks.map((r) => ({ rank: r.rank, points: ts.map((x) => [x, field === "stepMs" ? rankStepMs(id, r, x) : rankAt(id, r, x)[field]]) }));
     }
     function paceAt(t) {
       let num = 0, den = 0;
@@ -1015,11 +1053,243 @@
       return out.sort((a, b) => a.t - b.t);
     }
 
+    // ---- Cells: one GPU square's health (its fill) and allocation (its frame), with the
+    // words its hover and its accessible name say. The first matching row wins.
+    function cellAt(st, gid) {
+      const g = st.gpus[gid];
+      const hs = st.hosts[g.host];
+      const held = g.job ? "active" : "idle";
+      if (hs.state === "network_down" || hs.state === "flapping") {
+        return { health: "stale", allocation: held, words: "No fresh telemetry: node network " + (hs.state === "network_down" ? "down" : "links dropping") + " (simulated)" };
+      }
+      if (g.state === "lost") return { health: "unresponsive", allocation: g.job ? "active" : hs.state === "drained" ? "unavailable" : "idle", words: "Not responding" };
+      // A drained GPU still held by its job (until the job moves) stays inside the job's frame;
+      // once the job has left, it belongs to no job and takes no new work.
+      if (g.state === "drained") return { health: "drained", allocation: g.job ? "active" : "unavailable", words: "Drained by Artemis (simulated)" };
+      if (g.state === "fixing") return { health: "checking", allocation: held, words: "Artemis fixing or checking" };
+      if (g.state === "culprit") return { health: "cause", allocation: held, words: "GPU behind the problem" };
+      if (g.state === "affected") return { health: "degraded", allocation: held, words: "Job has a problem" };
+      if (g.state === "stopped") return { health: "degraded", allocation: held, words: "Job stopped" };
+      return { health: "healthy", allocation: held, words: "Healthy" };
+    }
+    // The first moment each health token is on screen, and a GPU that shows it then. A cell
+    // only changes where a job's phase, a GPU or node mark, a slow rank or a move starts.
+    function healthFirsts() {
+      const ts = new Set([START, END]);
+      for (const id of jobIds) {
+        const j = jobs[id];
+        for (const p of j.phases) ts.add(p.t);
+        if (j.slowRank) { ts.add(j.slowRank.from); if (j.slowRank.heatFrom !== null) ts.add(j.slowRank.heatFrom); }
+        if (j.moved) ts.add(j.moved.t);
+      }
+      for (const m of gpuMarks.concat(hostMarks)) ts.add(m.from);
+      const out = {};
+      for (const t of Array.from(ts).filter((x) => isFinite(x) && x >= START && x <= END).sort((a, b) => a - b)) {
+        const st = stateAt(t);
+        for (const g of data.topology.gpus) {
+          const c = cellAt(st, g.id);
+          if (!out[c.health]) out[c.health] = { t, gid: g.id };
+        }
+      }
+      return out;
+    }
+
+    // ---- One GPU's readings at t: its job's rank on it, or idle levels around its own
+    // medians; null where it does not respond or its node sends no fresh telemetry.
+    function rankOn(gid, t) {
+      const g = gpuById[gid];
+      for (const id of jobIds) {
+        const hi = hostsAt(id, t).indexOf(g.host);
+        if (hi < 0) continue;
+        const job = jobs[id];
+        const r = job.ranks.find((x) => x.host === job.hosts[hi] && gpuParts(x.gpu) && gpuParts(x.gpu).index === g.index);
+        if (r) return { id, r };
+      }
+      return null;
+    }
+    const NONE = { temp: null, util: null, mem: null, power: null, clock: null };
+    function gpuAt(gid, t) {
+      const g = gpuById[gid];
+      if (!g) return null;
+      if (staleAt(g.host, t)) return Object.assign({ state: "stale" }, NONE);
+      const on = rankOn(gid, t);
+      if (on) {
+        const v = rankAt(on.id, on.r, t);
+        return { state: v.state, job: on.id, rank: on.r.rank, temp: v.temp, util: v.util, mem: v.mem, power: v.power, clock: v.clock };
+      }
+      if (gpuMarks.some((m) => m.state === "lost" && m.gid === gid && t >= m.from && t < m.to)) return Object.assign({ state: "lost" }, NONE);
+      const L = levelsOf(gid), key = "idle-" + gid;
+      return { state: "idle", job: null, rank: null, temp: L.tIdle + 0.8 * noise(seed, "c" + key, t), util: 0, mem: 0,
+        power: L.pIdle + 1.5 * noise(seed, "p" + key, t), clock: 210 };
+    }
+    function gpuSeries(gid, field, t0, t1, every) {
+      return grid(Math.max(t0, START), t1, every || MINUTE).map((x) => { const v = gpuAt(gid, x); return [x, v ? v[field] : null]; });
+    }
+    // Each rank's step time in ms. The step waits for the slowest rank, so the slowest rank's
+    // own time is the job's step time; the others finish earlier by the rank imbalance (the
+    // slow rank's recorded detector.slow_rank ratio while it lasts), each with its own noise.
+    function rankStepMs(id, r, t) {
+      const step = stepTimeAt(id, t);
+      if (step === null) return null;
+      const sr = jobs[id].slowRank;
+      const slow = sr && t >= sr.from && t < sr.until;
+      if (slow && sr.rank === r.rank) return step * 1000;
+      const imb = imbalanceAt(id, t) || 1;
+      return (step * 1000 / imb) * (1 + 0.012 * noise(seed, "step-" + id + "-" + r.rank, t));
+    }
+    // A job's six telemetry series and its step time, per rank, in one pass: temperature
+    // (°C), utilization (%), memory (GiB), power (W), SM clock (MHz) and step time (ms). A
+    // rank whose GPU does not respond, or whose node sends no fresh telemetry, has no value.
+    function telemetry(id, t0, t1, every) {
+      const ts = grid(Math.max(t0, START), t1, every || MINUTE);
+      const job = jobs[id];
+      const out = job.ranks.map((r) => ({ rank: r.rank, temp: [], util: [], mem: [], power: [], clock: [], stepMs: [] }));
+      for (const x of ts) {
+        job.ranks.forEach((r, i) => {
+          const v = rankAt(id, r, x);
+          const gone = v.state === "lost" || staleAt(v.host, x);
+          for (const f of ["temp", "util", "mem", "power", "clock"]) out[i][f].push([x, gone ? null : v[f]]);
+          out[i].stepMs.push([x, rankStepMs(id, r, x)]);
+        });
+      }
+      return out;
+    }
+    // Thermal throttling on a job's GPUs: from the moment the GPU reports it (the thermal
+    // incident's gpu.clocks_event_reason) to the end of the day. Moving work off the GPU does
+    // not cool it (its clock stays low and the cooling fix waits for a person), and nothing
+    // in the snapshot records the throttling ending.
+    function throttleBands(id) {
+      const out = [];
+      for (const inc of incidents) {
+        if (inc.policy !== "gpu.thermal_power_throttling" || inc.jobs.indexOf(id) < 0) continue;
+        for (const f of factsNamed(inc, "gpu.clocks_event_reason")) out.push({ from: f.first_seen, to: END, gpu: f.subject, label: "Thermal throttling (simulated)" });
+      }
+      return out;
+    }
+
+    // ---- Benchmark history (simulated): one matched GEMM benchmark, twice a week for the 8
+    // weeks before the day. The rules are the live GPU view's (straggler/live/gpu.py): a
+    // trend needs MIN_TREND_POINTS points, its baseline is the median of the first
+    // BASELINE_POINTS. Most GPUs are flat within noise; the hot GPU declines about 7%, a lead
+    // for a person, and no cause is confirmed; the spare node was added late (3 points).
+    const MIN_TREND_POINTS = 12, BASELINE_POINTS = 3, BENCH_POINTS = 16;
+    const DAY0 = Math.floor(START / 86400) * 86400;
+    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dateWords = (t) => { const d = new Date(t * 1000); return d.getUTCDate() + " " + MON[d.getUTCMonth()] + " " + d.getUTCFullYear(); };
+    const spareHosts = [];
+    for (const id of jobIds) {
+      const mv = jobs[id].moved;
+      if (mv) for (const hst of mv.to) if (mv.from.indexOf(hst) < 0 && spareHosts.indexOf(hst) < 0) spareHosts.push(hst);
+    }
+    const thermalInc = incidents.find((i) => i.policy === "gpu.thermal_power_throttling") || null;
+    const hotGpu = thermalInc && jobs[thermalInc.jobs[0]] && jobs[thermalInc.jobs[0]].slowRank ? jobs[thermalInc.jobs[0]].slowRank.gpu : null;
+    const BENCH = { workload: "Matched GEMM benchmark (simulated)", metric: "fp16_tflops", kind: "throughput", unit: "TFLOPS" };
+    function benchmarksOf(gid) {
+      const g = gpuById[gid];
+      const k0 = spareHosts.indexOf(g.host) >= 0 ? BENCH_POINTS - 3 : 0;
+      const hk = hashStr("bench-" + g.uuid) ^ seed;
+      const base = 266 + 10 * hash2(hk, 1);
+      const points = [];
+      for (let k = k0; k < BENCH_POINTS; k++) {
+        const t = DAY0 - 56 * 86400 + k * 3.5 * 86400 + 2 * 3600 + Math.round(hash2(hk, 100 + k) * 40) * 60;
+        const decline = gid === hotGpu && k >= 6 ? 0.07 * (k - 5) / (BENCH_POINTS - 6) : 0;
+        const v = base * (1 - decline) * (1 + 0.006 * (hash2(hk, 200 + k) * 2 - 1));
+        points.push({ t, value: Math.round(v * 10) / 10, job_id: "sim-gemm-" + String(k + 1).padStart(2, "0"), unit: BENCH.unit });
+      }
+      const s = { hw_class: g.model, workload: BENCH.workload, metric: BENCH.metric, kind: BENCH.kind, unit: BENCH.unit, n: points.length, points,
+        provenance: "simulated", jobs: points.map((p) => p.job_id), changes: [], note: "higher is healthier" };
+      if (points.length < MIN_TREND_POINTS) {
+        Object.assign(s, { state: "insufficient", trend: null, reason: "insufficient history (" + points.length + " point" + (points.length === 1 ? "" : "s") + "; a trend needs " + MIN_TREND_POINTS + ")" });
+      } else {
+        const baseline = median(points.slice(0, BASELINE_POINTS).map((p) => p.value));
+        const latest = points[points.length - 1].value;
+        const change = latest / baseline - 1;
+        Object.assign(s, { state: "trend", baseline, latest, change_vs_baseline: change,
+          reason: gid === hotGpu ? "down " + Math.abs(Math.round(change * 100)) + "% against its own baseline: a lead for a person; no cause is confirmed" : null });
+      }
+      return { state: s.state === "trend" ? "trend" : "insufficient", series: [s], provenance: "simulated", label: "SIMULATED",
+        what: "a matched GEMM benchmark synthesized by this page", reason: null,
+        note: "Simulated: synthesized by this page around the snapshot's values. Only the same hardware class, workload and metric are compared; telemetry is not a benchmark." };
+    }
+
+    // ---- Service records (simulated). The day's own records show once the clock reaches
+    // them; a seeded one in six GPUs also has one to three dated examples from before the
+    // day. A drain or a restart is what Artemis did, never worded as physical service.
+    const dayService = []; // {host?|gid?, t, text, outcome}
+    for (const inc of incidents) {
+      for (const a of inc.actions) {
+        if (a.fix === "cordon_node" && a.status === "done") dayService.push({ host: short(a.target), t: a.tShow, text: "Node drained by Artemis (simulated)", outcome: "no new work lands on it" });
+        if (a.fix === "rebalance_work" && hotGpu) dayService.push({ gid: hotGpu, t: a.tShow, text: "Work moved off this GPU by Artemis (simulated)", outcome: "no control was sent" });
+      }
+      for (const f of factsNamed(inc, "gpu.fallen_off_bus")) dayService.push({ gid: f.subject, t: f.first_seen, text: "Stopped responding: Xid " + f.measured.xid + ", fallen off the bus", outcome: "incident" });
+      for (const tk of inc.tickets) {
+        if (tk.kind === "node_repair") for (const hst of (tk.ticket && tk.ticket.hosts) || []) dayService.push({ host: short(hst), t: tk.tShow, text: "Repair ticket opened, nobody received it", outcome: "waits for a person" });
+        if (tk.kind === "approval" && inc === thermalInc && hotGpu) dayService.push({ gid: hotGpu, t: tk.tShow, text: "Cooling fix ticket opened, nobody received it", outcome: "waits for approval" });
+      }
+      for (const v of inc.verify) {
+        for (const hst of inc.nodeConfirmed ? inc.nodeConfirmed.map(short) : []) dayService.push({ host: hst, t: v.tShow, text: "Recovery check passed: confirms the node, not the cause", outcome: "passed" });
+      }
+    }
+    for (const id of jobIds) {
+      const mv = jobs[id].moved;
+      if (mv) for (const hst of mv.to) if (spareHosts.indexOf(hst) >= 0) dayService.push({ host: hst, t: mv.t, text: "Job restarted on a spare node", outcome: jobName[id] + ", from its last checkpoint" });
+    }
+    const PAST = [["Driver updated", "done"], ["Diagnostics passed", "passed"], ["Cooling serviced", "done"]];
+    function serviceAt(gid, t) {
+      const g = gpuById[gid];
+      const recs = dayService.filter((r) => (r.gid === gid || r.host === g.host) && r.t <= t)
+        .map((r) => ({ text: r.text, date: dateWords(r.t) + ", " + hhmm(r.t) + " UTC", outcome: r.outcome, provenance: "simulated", t: r.t }));
+      const hk = hashStr("service-" + g.uuid) ^ seed;
+      if (hash2(hk, 0) < 1 / 6) {
+        const n = 1 + Math.floor(hash2(hk, 1) * 3);
+        for (let k = 0; k < n; k++) {
+          const at = DAY0 - (6 + Math.floor(hash2(hk, 10 + k) * 110)) * 86400 + 10 * 3600;
+          const [text, outcome] = PAST[Math.floor(hash2(hk, 20 + k) * PAST.length)];
+          recs.push({ text, date: dateWords(at), outcome, provenance: "simulated", t: at });
+        }
+      }
+      recs.sort((a, b) => b.t - a.t);
+      return { state: recs.length ? "recorded" : "none_recorded", records: recs, text: "No simulated service records",
+        sources_checked: ["the simulated service log this page synthesizes"] };
+    }
+
+    // ---- One GPU's record (an artemis-live-gpu-1 document, as straggler/live/gpu.py writes
+    // it, plus the title, health and latest values the page shows). Everything is simulated.
+    const GIB = 2 ** 30;
+    function gpuRecordAt(gid, t, st0) {
+      const g = gpuById[gid];
+      if (!g) return null;
+      const st = st0 || stateAt(t);
+      const gs = st.gpus[gid];
+      const c = cellAt(st, gid);
+      const v = gpuAt(gid, st.t);
+      const js = gs.job ? st.jobs[gs.job] : null;
+      const was = !js ? jobIds.filter((id) => jobs[id].hosts.indexOf(g.host) >= 0 && hostsAt(id, st.t).indexOf(g.host) < 0) : [];
+      const m = medOf(gid);
+      const num = (x, d) => (x === null || x === undefined || !isFinite(x) ? null : Number(x.toFixed(d)));
+      return {
+        schema: "artemis-live-gpu-1", uuid: g.uuid, evaluated_at: st.t, source: "simulated",
+        title: "GPU " + g.index + " on " + g.host, health: c.health, words: c.words, host: g.host, index: g.index,
+        identity: { recorded: { vendor: /^NVIDIA\b/.test(g.model || "") ? "NVIDIA" : null, model: g.model, memory_bytes: 80 * GIB, pci_bus_id: m.pci_bus_id || null },
+          provenance: "simulated", label: "SIMULATED" },
+        location: { current: js ? { run: js.id, label: js.name, rank: gs.rank, node: g.host } : null,
+          seen: was.map((id) => ({ run: jobName[id] })), note: "Simulated: where the scenario clock places it at " + hhmm(st.t) + " UTC." },
+        latest: [
+          { label: "Temperature", value: num(v.temp, 0), unit: "°C" }, { label: "Utilization", value: num(v.util, 0), unit: "%" },
+          { label: "Memory used", value: num(v.mem, 1), unit: "GiB of 80" }, { label: "Power", value: num(v.power, 0), unit: "W" },
+          { label: "SM clock", value: num(v.clock, 0), unit: "MHz" },
+        ],
+        benchmarks: benchmarksOf(gid), service: serviceAt(gid, st.t), signals: [],
+      };
+    }
+
     return {
       start: START, end: END, seed, steps, events, rate, stateAt, series, rankSeries, marks, fleetMarks,
       jobIds, jobName, incidents, incIndex, jobs, hhmm, policyWords, fixWords, gpuLabel, short, ticketWords,
       fixPhrase: (fix, targets) => fixPhrase(fix, targets, jobName),
       rackLeaf, hostRack, samplesPerStep, SPREAD,
+      cellAt, healthFirsts, gpuAt, gpuSeries, telemetry, throttleBands, benchmarksOf, serviceAt, gpuRecordAt,
+      gpuById, gpuByUuid, spareHosts, hotGpu, MIN_TREND_POINTS, BASELINE_POINTS, dateWords,
     };
   }
 
