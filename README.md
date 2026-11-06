@@ -124,6 +124,38 @@ cd ~/code/straggler-detector
 Then build and publish this website as usual. Do not copy the private source,
 raw hardware evidence, Vercel functions, or credentials into the public site.
 
+The export replaces everything in `public/Artemis/Demo/`, including the
+Architecture link in the demo's navigation. `scripts/apply-demo-architecture-link.mjs`
+puts it back: `npm run build` runs it first through the `prebuild` script, and it
+changes nothing if the link is already there. It adds the link after the About
+link and a stylesheet after `demo.css`. That stylesheet is
+`public/Artemis/Architecture/demo-link.css`, which keeps the demo's header the same
+size with one more item. The build fails with an error instead of shipping without
+the link if the export no longer has either anchor as a live element, if the link
+would not land inside the `.nav` element, if the markup of `index.html` hides `.nav`
+(`hidden`, `inert`, `popover`, `aria-hidden="true"`, an inline `display:none` or
+`visibility:hidden`, or a closed `<details>` or `<dialog>`), or if `fonts.css` is gone.
+This static check cannot see a stylesheet or script, and other ways can get through. Commit
+the decorated `index.html` after a refresh, so the tree matches what the build produces.
+
+`/Artemis/Architecture/` serves the reasoning pyramid and a logic map from
+`public/Artemis/Architecture/`. The pyramid goes from telemetry through
+specialist detectors and shared evidence to an LLM at the top. The map follows
+each failure pattern through its signals, triggers, effects, evidence, responses
+and recovery checks. It is a conceptual map: every selected algorithm is Pending,
+and it does not claim that every real-world metric or failure is covered, or that
+any model or detector is trained, deployed or hardware-qualified. The page has
+relative URLs, no analytics and no network calls, and it downloads as SVG, PNG or
+PDF. It loads its fonts from `../Demo/fonts.css`.
+
+`catalog.js` there is a reviewed public projection built from an allowlist of
+fields, with no private provenance: no source paths, repository links, commit pins,
+hashes, raw evidence or implementation notes. Its generator stays private and is
+not in this repository. Do not refresh the page by copying a private catalog over
+it, and do not hand it a raw export. The four counts are in the page's markup so
+they show without JavaScript, and the script overwrites them from `catalog.js` when
+it loads.
+
 ### The intro and the song
 
 `public/audio/theme.mp3` is the theme song. Playback starts at `SONG_START`
