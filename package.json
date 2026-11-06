@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
+    "prebuild": "node scripts/apply-demo-architecture-link.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

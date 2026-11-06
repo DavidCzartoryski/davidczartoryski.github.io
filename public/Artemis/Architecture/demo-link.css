@@ -1,0 +1,19 @@
+/* Loaded by /Artemis/Demo/ so its header keeps its size with the Architecture link added.
+   It lives here because the demo's own files are replaced on every export. See
+   scripts/apply-demo-architecture-link.mjs. */
+@media (min-width: 721px) and (max-width: 1199px) {
+  .bar { gap: 12px; }
+  .nav { gap: 0; margin-left: 4px; }
+  .nav a { padding: 0 7px; }
+}
+@media (min-width: 721px) and (max-width: 900px) {
+  .brand-sub { display: none; }
+}
+@media (max-width: 720px) {
+  .nav { flex: 1 1 0; min-width: 0; margin-left: 0; scrollbar-width: none; }
+  .nav a { flex: none; padding: 0 7px; white-space: nowrap; }
+  .nav a:first-child { margin-left: auto; }
+}
+@media (max-width: 389px) {
+  .nav a { padding: 0 4px; }
+}
