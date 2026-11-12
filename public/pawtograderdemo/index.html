@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Pawtograder: custom TA roles (mock)</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --line: #e3e6eb; --line-2: #d0d5dd;
+    --ink: #1b2230; --muted: #5d6676; --faint: #8a93a3;
+    --blue: #2b5fd9; --blue-50: #eef3ff; --blue-100: #dbe6ff;
+    --green: #15803d; --green-50: #ecfdf3;
+    --amber: #a15c07; --amber-50: #fff8e6; --amber-line: #f5d28a;
+    --red: #c0262d; --red-50: #fff1f1;
+    --purple: #6d3fd6; --purple-50: #f4efff;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font: 14px/1.45 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  h1, h2, h3 { margin: 0; line-height: 1.25; text-wrap: balance; }
+  h1 { font-size: 22px; font-weight: 650; }
+  h2 { font-size: 16px; font-weight: 650; }
+  h3 { font-size: 14px; font-weight: 650; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .faint { color: var(--faint); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Tour strip (for presenting) */
+  .tour {
+    background: #141a26; color: #d7dce5; font-size: 13px;
+    display: flex; align-items: center; gap: 6px; padding: 6px 16px; flex-wrap: wrap;
+  }
+  .tour .tag { color: #9aa4b5; margin-right: 6px; }
+  .tour button {
+    background: transparent; border: 1px solid #343d4f; color: #d7dce5;
+    border-radius: 999px; padding: 3px 11px;
+  }
+  .tour button:hover { background: #222a3a; }
+  .tour button[aria-current="step"] { background: #fff; color: #141a26; border-color: #fff; }
+  .tour .spacer { flex: 1; }
+
+  /* Pawtograder top nav */
+  .topnav {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 18px; padding: 0 16px; height: 56px;
+    position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .course { color: var(--muted); font-size: 13px; padding-left: 14px; border-left: 1px solid var(--line); white-space: nowrap; }
+  .links { display: flex; gap: 2px; overflow-x: auto; }
+  .links button {
+    background: none; border: 0; padding: 8px 10px; border-radius: 6px; color: var(--muted); white-space: nowrap;
+  }
+  .links button:hover { background: var(--bg); color: var(--ink); }
+  .links button.on { color: var(--blue); background: var(--blue-50); font-weight: 600; }
+  .me { margin-left: auto; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .me label { font-size: 12px; color: var(--muted); }
+  .me select { border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 8px; background: #fff; max-width: 260px; }
+
+  /* Layout */
+  .page { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 0; min-height: calc(100vh - 96px); }
+  .page.full { grid-template-columns: minmax(0, 1fr); }
+  .side { border-right: 1px solid var(--line); background: var(--card); padding: 16px 10px; }
+  .side .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); padding: 0 10px 8px; }
+  .side button {
+    display: flex; width: 100%; align-items: center; gap: 8px; text-align: left;
+    background: none; border: 0; padding: 7px 10px; border-radius: 6px; color: var(--muted);
+  }
+  .side button:hover { background: var(--bg); color: var(--ink); }
+  .side button.on { background: var(--blue-50); color: var(--blue); font-weight: 600; }
+  .main { padding: 24px 28px 64px; max-width: 1180px; }
+  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .crumb { font-size: 12px; color: var(--faint); margin-bottom: 4px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+  .card + .card { margin-top: 14px; }
+  .stats > .card + .card, .grid2 > .card + .card { margin-top: 0; }
+  .pad { padding: 16px 18px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .grid2 { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .stack > * + * { margin-top: 10px; }
+
+  /* Buttons */
+  .btn {
+    border: 1px solid var(--line-2); background: #fff; border-radius: 6px; padding: 7px 12px;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.primary:hover { background: #224fbb; }
+  .btn.sm { padding: 4px 9px; font-size: 13px; }
+  .btn.ghost { border-color: transparent; background: none; color: var(--blue); }
+  .btn.ghost:hover { background: var(--blue-50); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:focus-visible, .switch:focus-visible, select:focus-visible, input:focus-visible, .links button:focus-visible, .side button:focus-visible, .roleitem:focus-visible {
+    outline: 2px solid var(--blue); outline-offset: 2px;
+  }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+  .b-live { background: var(--green-50); color: var(--green); }
+  .b-new { background: var(--purple-50); color: var(--purple); }
+  .b-gray { background: #eef0f3; color: var(--muted); }
+  .b-blue { background: var(--blue-50); color: var(--blue); }
+  .b-amber { background: var(--amber-50); color: var(--amber); }
+  .b-red { background: var(--red-50); color: var(--red); }
+
+  /* Notices */
+  .note { border-radius: var(--radius); padding: 10px 14px; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+  .note.blue { background: var(--blue-50); color: #1d3f8f; }
+  .note.amber { background: var(--amber-50); color: #7a4504; border: 1px solid var(--amber-line); }
+  .note.green { background: var(--green-50); color: #145c31; }
+  .note.gray { background: #f0f2f5; color: var(--muted); }
+  .note b { font-weight: 650; }
+
+  /* Roles */
+  .roleitem {
+    width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line);
+    padding: 12px 14px; display: block;
+  }
+  .roleitem:last-child { border-bottom: 0; }
+  .roleitem:hover { background: var(--bg); }
+  .roleitem.on { background: var(--blue-50); box-shadow: inset 3px 0 0 var(--blue); }
+  .roleitem .t { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; }
+  .roleitem .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .area { border-top: 1px solid var(--line); }
+  .area:first-child { border-top: 0; }
+  .area-h { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+  .cap { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 18px; }
+  .cap.changed { background: #fbfaf3; }
+  .cap .l { font-weight: 550; }
+  .cap .d { font-size: 12px; color: var(--muted); }
+  .cap .tags { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+
+  .switch {
+    width: 36px; height: 20px; border-radius: 999px; border: 0; padding: 0; position: relative;
+    background: #cdd2da; transition: background-color .15s ease;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s ease;
+  }
+  .switch[aria-checked="true"] { background: var(--blue); }
+  .switch[aria-checked="true"]::after { transform: translateX(16px); }
+  .switch:disabled { opacity: .5; cursor: not-allowed; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px 2px 3px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; background: #fff; }
+  .av { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; flex: none; }
+  .av.lg { width: 34px; height: 34px; font-size: 13px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--line); background: #fafbfc; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  td.r, th.r { text-align: right; }
+  .bar { height: 8px; border-radius: 999px; background: #e9ecf1; overflow: hidden; min-width: 90px; }
+  .bar > span { display: block; height: 100%; background: var(--blue); border-radius: 999px; }
+  .bar.done > span { background: var(--green); }
+  .bar.behind > span { background: #d97706; }
+  .bar.big { height: 12px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .stat { padding: 12px 16px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 22px; font-weight: 650; margin-top: 2px; }
+
+  /* Drawer + modal */
+  .scrim { position: fixed; inset: 0; top: var(--tour, 0px); background: rgba(20, 26, 38, .35); z-index: 40; }
+  .drawer {
+    position: fixed; top: var(--tour, 0px); right: 0; bottom: 0; width: min(560px, 100%); background: #fff; z-index: 41;
+    box-shadow: -12px 0 32px rgba(20,26,38,.18); display: flex; flex-direction: column;
+  }
+  .drawer .dh { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .drawer .db { padding: 16px 20px; overflow-y: auto; flex: 1; }
+  .drawer .df { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+  .field { margin-bottom: 16px; }
+  .field > .fl { font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block; }
+  .opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+  .opt input { margin: 0; accent-color: var(--blue); width: 16px; height: 16px; }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; padding: 6px 12px; border-right: 1px solid var(--line-2); }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--blue-50); color: var(--blue); font-weight: 600; }
+  .modal {
+    position: fixed; z-index: 41; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: min(460px, calc(100% - 32px)); background: #fff; border-radius: 10px; box-shadow: 0 20px 48px rgba(20,26,38,.25);
+  }
+  .modal .mh { padding: 18px 20px 6px; }
+  .modal .mb { padding: 10px 20px; }
+  .modal .mf { padding: 14px 20px 18px; display: flex; justify-content: flex-end; gap: 8px; }
+  .input { width: 100%; border: 1px solid var(--line-2); border-radius: 6px; padding: 8px 10px; background: #fff; }
+  .input.sm { padding: 5px 8px; }
+  select.input { padding: 7px 8px; }
+
+  /* View as */
+  .viewas {
+    background: #fff7e0; border-bottom: 1px solid var(--amber-line); color: #6b3d04;
+    padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .viewas b { font-weight: 650; }
+  .viewas .sp { flex: 1; }
+  .queue td:first-child { width: 36%; }
+
+  /* Rubric */
+  .crit { display: grid; grid-template-columns: minmax(0, 1fr) 84px 32px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .crit:last-of-type { border-bottom: 0; }
+  .scorebtns { display: flex; gap: 4px; flex-wrap: wrap; }
+  .scorebtns button { min-width: 30px; border: 1px solid var(--line-2); background: #fff; border-radius: 5px; padding: 3px 6px; font-size: 12px; }
+  .scorebtns button[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  /* Home */
+  .feat { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .feat .card { margin: 0; display: flex; flex-direction: column; }
+  .feat .card .pad { flex: 1; }
+  .feat .why { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .feat .fx { padding: 10px 18px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 60;
+    background: #141a26; color: #fff; border-radius: 8px; padding: 10px 16px; font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: min(620px, calc(100% - 32px));
+    opacity: 0; transition: opacity .18s ease; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 900px) {
+    .page { grid-template-columns: minmax(0, 1fr); }
+    .side { display: none; }
+    .grid2 { grid-template-columns: minmax(0, 1fr); }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .main { padding: 18px 14px 56px; }
+    .course, .links, .me label { display: none; }
+    .me select { max-width: 210px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<nav class="tour" aria-label="Demo steps" id="tour"></nav>
+<header class="topnav">
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><g fill="#2b5fd9"><ellipse cx="12" cy="16" rx="5" ry="4.2"/><circle cx="5.5" cy="10" r="2.2"/><circle cx="9.5" cy="6" r="2.2"/><circle cx="14.5" cy="6" r="2.2"/><circle cx="18.5" cy="10" r="2.2"/></g></svg>
+    Pawtograder
+  </div>
+  <div class="course">Demo Course · Fall 2026</div>
+  <div class="links" id="links"></div>
+  <div class="me">
+    <label for="me">Signed in as</label>
+    <select id="me"></select>
+  </div>
+</header>
+<div id="app"></div>
+<div id="overlay"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ---------- Data ---------- */
+
+// Capabilities, grouped by feature area. From design/feature-capabilities.md (team repo PR #29).
+// live: already exists in Pawtograder (★ in the doc). isNew: from the user study, not in the doc's table yet.
+const CAPS = [
+  { area: "Assignment setup", items: [
+    { id: "manage_assignments", label: "Create and edit assignments", desc: "Release and due dates, points, autograder setup, repos", live: true },
+    { id: "manage_rubrics", label: "Create and edit rubrics", desc: "Add criteria and the points graders score" },
+  ]},
+  { area: "Review", items: [
+    { id: "manage_review_assignments", label: "Assign and reassign grading", desc: "Grading Assignments page, grading progress, View as a TA", live: true },
+  ]},
+  { area: "Groups", items: [
+    { id: "publish_groups", label: "Publish groups", live: true },
+    { id: "manage_groups", label: "Rename and edit groups" },
+  ]},
+  { area: "Grading", items: [
+    { id: "grade_submissions", label: "Grade submissions" },
+    { id: "change_submitted_grades", label: "Change a grade after it's submitted", desc: "Off by default, since instructors disagree on it", isNew: true },
+    { id: "release_grades", label: "Release grades" },
+  ]},
+  { area: "Regrades", items: [ { id: "handle_regrades", label: "Handle regrade requests" } ]},
+  { area: "Gradebook", items: [
+    { id: "view_gradebook", label: "See the gradebook", sensitive: true },
+    { id: "manage_gradebook", label: "Edit gradebook columns" },
+  ]},
+  { area: "Repos & workflows", items: [
+    { id: "manage_submissions", label: "Manage repos and submissions", desc: "Repo status, rerun autograder, manual submission" },
+  ]},
+  { area: "Extensions", items: [ { id: "grant_extensions", label: "Grant due date extensions" } ]},
+  { area: "Roster", items: [
+    { id: "manage_roster", label: "Manage enrollments" },
+    { id: "manage_roles", label: "Manage roles", desc: "Instructors only. Never on a custom role, so a TA can't raise their own access.", live: true, instructorOnly: true },
+  ]},
+  { area: "Office hours", items: [
+    { id: "help_students", label: "Help students in the queue" },
+    { id: "manage_office_hours", label: "Set up queues and hours" },
+  ]},
+  { area: "Surveys & polls", items: [
+    { id: "run_polls", label: "Run polls" },
+    { id: "manage_surveys", label: "Create and edit surveys" },
+  ]},
+  { area: "Discussion", items: [
+    { id: "moderate_discussion", label: "Moderate discussion" },
+    { id: "send_announcements", label: "Send announcements" },
+  ]},
+  { area: "Flashcards", items: [ { id: "manage_flashcards", label: "Manage flashcard decks" } ]},
+];
+const CAP_BY_ID = Object.fromEntries(CAPS.flatMap(a => a.items.map(i => [i.id, i])));
+const ALL_CAPS = Object.keys(CAP_BY_ID);
+const GRADER_DEFAULT = ["grade_submissions", "handle_regrades", "view_gradebook", "grant_extensions", "help_students", "run_polls", "moderate_discussion", "manage_flashcards"];
+
+const COLORS = ["#2b5fd9", "#15803d", "#a15c07", "#6d3fd6", "#c0262d", "#0e7490", "#be185d", "#4d5b7c"];
+
+const S = {
+  route: "home",
+  tourStep: 0,
+  me: "rivera",
+  selectedRole: "coord",
+  roles: [
+    { id: "instructor", name: "Instructor", kind: "fixed", caps: new Set(ALL_CAPS) },
+    { id: "grader", name: "Default grader", kind: "default", caps: new Set(GRADER_DEFAULT) },
+    { id: "coord", name: "Course coordinator", kind: "custom", base: "Default grader",
+      caps: new Set(["view_gradebook", "manage_review_assignments", "change_submitted_grades", "handle_regrades", "grant_extensions", "help_students", "run_polls", "moderate_discussion"]) },
+    { id: "head", name: "Head TA", kind: "custom", base: "Default grader",
+      caps: new Set([...GRADER_DEFAULT, "manage_rubrics", "manage_groups", "manage_review_assignments"]) },
+  ],
+  people: [
+    { id: "rivera", name: "Prof. Ana Rivera", role: "instructor" },
+    { id: "morgan", name: "Morgan Chen", role: "coord" },
+    { id: "priya", name: "Priya Shah", role: "head" },
+    { id: "jordan", name: "Jordan Lee", role: "grader" },
+    { id: "sam", name: "Sam Ortiz", role: "grader" },
+    { id: "alex", name: "Alex Kim", role: "grader" },
+    { id: "taylor", name: "Taylor Brooks", role: "grader" },
+    { id: "chris", name: "Chris Nguyen", role: "grader" },
+  ],
+  // Grading for HW 4, split by problem. a = assigned, d = done.
+  grading: [
+    { id: "priya",  p: [{ a: 15, d: 15 }, { a: 15, d: 12 }], incoming: [] },
+    { id: "jordan", p: [{ a: 15, d: 10 }, { a: 15, d: 2 }],  incoming: [] },
+    { id: "sam",    p: [{ a: 15, d: 4 },  { a: 15, d: 0 }],  incoming: [] },
+    { id: "alex",   p: [{ a: 15, d: 12 }, { a: 15, d: 9 }],  incoming: [] },
+    { id: "taylor", p: [{ a: 15, d: 15 }, { a: 15, d: 15 }], incoming: [] },
+    { id: "chris",  p: [{ a: 15, d: 9 },  { a: 15, d: 8 }],  incoming: [] },
+  ],
+  drawer: null,
+  modal: null,
+  viewAs: { kind: "ta", id: "jordan" },
+  rubricMode: "simple",
+  rubric: [
+    { name: "Event model can't be changed after it's created", pts: 4 },
+    { name: "Scheduler rejects overlapping events", pts: 3 },
+    { name: "Tests cover empty, single and overlapping schedules", pts: 3 },
+  ],
+  rubricScores: {},
+  log: [
+    { t: "Nov 10, 2:14 PM", who: "Prof. Ana Rivera", what: "Created the role Course coordinator as a copy of Default grader" },
+    { t: "Nov 10, 2:16 PM", who: "Prof. Ana Rivera", what: "Turned off Grade submissions for Course coordinator" },
+    { t: "Nov 10, 2:17 PM", who: "Prof. Ana Rivera", what: "Gave Morgan Chen the role Course coordinator" },
+  ],
+};
+
+const PARTS = ["Problem 1", "Problem 2"];
+const FIRST = ["Riley", "Dana", "Jamie", "Noor", "Mateo", "Avery", "Wen", "Kofi", "Lena", "Omar", "Hana", "Diego", "Maya", "Theo", "Zara", "Ivan", "Sofia", "Kai", "Amara", "Luca"];
+const LAST = ["Adams", "Park", "Rossi", "Haddad", "Silva", "Cohen", "Zhang", "Mensah", "Novak", "Farouk", "Sato", "Reyes", "Patel", "Berg", "Khan", "Petrov", "Costa", "Moreau", "Obi", "Ferri"];
+const studentName = (k) => FIRST[k % FIRST.length] + " " + LAST[(k * 7 + 3) % LAST.length];
+
+/* ---------- Helpers ---------- */
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const person = (id) => S.people.find(p => p.id === id);
+const role = (id) => S.roles.find(r => r.id === id);
+const roleOf = (pid) => role(person(pid).role);
+const me = () => person(S.me);
+const can = (cap) => roleOf(S.me).caps.has(cap);
+const gr = (id) => S.grading.find(g => g.id === id);
+const rem = (g) => g.p.map(x => x.a - x.d);
+const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+const initials = (n) => n.replace("Prof. ", "").split(" ").map(w => w[0]).join("").slice(0, 2);
+const colorFor = (id) => COLORS[S.people.findIndex(p => p.id === id) % COLORS.length];
+const av = (id, lg) => { const p = person(id); return `<span class="av${lg ? " lg" : ""}" style="background:${colorFor(id)}" aria-hidden="true">${esc(initials(p.name))}</span>`; };
+const pct = (d, a) => a ? Math.round((d / a) * 100) : 0;
+const now = () => new Date().toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const firstName = (id) => person(id).name.replace("Prof. ", "").split(" ")[0];
+
+function addLog(what) { S.log.unshift({ t: now(), who: me().name, what }); }
+
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+function bar(d, a, extra) {
+  const p = pct(d, a);
+  const cls = p === 100 ? "done" : (extra === "behind" ? "behind" : "");
+  return `<div class="bar ${cls}${extra === "big" ? " big" : ""}" role="img" aria-label="${p}% done"><span style="width:${p}%"></span></div>`;
+}
+
+/* ---------- Tour ---------- */
+
+const TOUR = [
+  { label: "Overview", go: () => { S.me = "rivera"; S.route = "home"; } },
+  { label: "1 · Roles you can edit", go: () => { S.me = "rivera"; S.selectedRole = "coord"; S.route = "roles"; } },
+  { label: "2 · Coordinator: assigns, doesn't grade", go: () => { S.me = "morgan"; S.route = "grading"; } },
+  { label: "3 · Reassign grading", go: () => { S.me = "morgan"; S.route = "grading"; openReassign("sam"); } },
+  { label: "4 · View as a TA", go: () => { S.me = "morgan"; S.viewAs = { kind: "ta", id: "jordan" }; S.route = "viewas"; } },
+  { label: "5 · TAs edit rubrics", go: () => { S.me = "priya"; S.route = "rubric"; } },
+];
+
+function renderTour() {
+  $("#tour").innerHTML = `<span class="tag">Mock · fake data</span>` +
+    TOUR.map((s, i) => `<button type="button" data-act="tour" data-i="${i}" ${S.tourStep === i ? 'aria-current="step"' : ""}>${esc(s.label)}</button>`).join("") +
+    `<span class="spacer"></span><span class="tag">CS 4535 · Usability team</span>`;
+}
+
+/* ---------- Top nav ---------- */
+
+const NAV = [
+  { label: "Overview", route: "home" },
+  { label: "Manage Assignments", route: "grading", match: ["grading", "rubric", "viewas"] },
+  { label: "Discussion" }, { label: "Office Hours" }, { label: "Gradebook" }, { label: "Surveys" },
+  { label: "Course Settings", route: "roles", match: ["roles", "audit"] },
+];
+
+function renderNav() {
+  $("#links").innerHTML = NAV.map((n, i) => {
+    const on = n.route && (n.route === S.route || (n.match || []).includes(S.route));
+    return `<button type="button" class="${on ? "on" : ""}" data-act="nav" data-i="${i}">${esc(n.label)}</button>`;
+  }).join("");
+  $("#me").innerHTML = S.people.filter(p => ["rivera", "morgan", "priya", "jordan"].includes(p.id))
+    .map(p => `<option value="${p.id}" ${p.id === S.me ? "selected" : ""}>${esc(p.name)} (${esc(roleOf(p.id).name)})</option>`).join("");
+}
+
+/* ---------- Screens ---------- */
+
+function sideAssignment(active) {
+  const items = [
+    ["Assignment Home"], ["Edit Assignment"], ["Configure Rubric", "rubric"], ["Grading Assignments", "grading"],
+    ["Manage Groups"], ["Manage Regrade Requests"], ["Repository Status"],
+  ];
+  return `<aside class="side" aria-label="Assignment"><div class="label">HW 4 · Event Scheduler</div>` +
+    items.map(([l, r]) => `<button type="button" class="${r === active ? "on" : ""}" data-act="${r ? "go" : "inert"}" data-route="${r || ""}">${esc(l)}</button>`).join("") +
+    `</aside>`;
+}
+
+function sideSettings(active) {
+  const items = [
+    ["Enrollments"], ["Roles & Capabilities", "roles", true], ["Class Sections"], ["Lab Sections"],
+    ["Due Date Extensions"], ["Audit Log", "audit"],
+  ];
+  return `<aside class="side" aria-label="Course settings"><div class="label">Course Settings</div>` +
+    items.map(([l, r, isNew]) => `<button type="button" class="${r === active ? "on" : ""}" data-act="${r ? "go" : "inert"}" data-route="${r || ""}">${esc(l)}${isNew ? ' <span class="badge b-new">New</span>' : ""}</button>`).join("") +
+    `</aside>`;
+}
+
+function screenHome() {
+  const feats = [
+    { t: "Roles the instructor can edit", fix: "Instructors pick exactly what each TA can do: about 20 switches grouped by area. A new role starts as a copy of Default grader.", from: "P1 and P2: “toggle individual permissions”", status: "4 capabilities exist today", step: 1 },
+    { t: "Course coordinator", fix: "Can see assignments, assign and reassign grading and fix grades, but can't grade. Less than a grader, which the old add-only roles couldn't do.", from: "P2 and P3, who is a coordinator", status: "Built from existing capabilities", step: 2 },
+    { t: "Reassign grading fairly", fix: "Move all or half of a TA's remaining work, preview who gets what, and balance by what each TA has left. Reassigned problems stay in the new grader's queue.", from: "P3's #2 and the “work disappears after mark complete” bug", status: "Mock", step: 3 },
+    { t: "View as a TA or a student", fix: "See a TA's queue and progress exactly as they see it, read-only, and switch to a student's view.", from: "P3's favorite feature of Khoury's old system", status: "Mock", step: 4 },
+    { t: "Change a grade after it's submitted", fix: "An optional capability, off by default, so a second TA can fix a 0 after a rescheduled slot.", from: "P3's #1", status: "Mock", step: 1 },
+    { t: "TAs edit rubrics, with simple criteria", fix: "Give a TA “Create and edit rubrics”, and set up a rubric as plain criteria with points instead of YAML.", from: "P1 moved rubrics to Canvas because TAs couldn't edit them", status: "Mock", step: 5 },
+  ];
+  return `<div class="page full"><main class="main" style="max-width:1180px;margin:0 auto">
+    <div class="head"><div><div class="crumb">Pawtograder · custom TA roles</div><h1>What's new for TAs and coordinators</h1>
+    <p class="muted" style="margin-top:6px;max-width:720px">A clickable mock of our feature for the Nov 23 freeze. Each card comes from the Nov 4 user study. Switch “Signed in as” at the top right to see the same page through a different role.</p></div></div>
+    <div class="feat">${feats.map(f => `<div class="card"><div class="pad"><h2>${esc(f.t)}</h2><p class="why">${esc(f.fix)}</p>
+      <p class="faint" style="font-size:12px;margin-top:10px">From the study: ${esc(f.from)}</p></div>
+      <div class="fx"><span class="badge ${f.status === "Mock" ? "b-gray" : "b-live"}">${esc(f.status)}</span>
+      <button type="button" class="btn sm" data-act="tour" data-i="${f.step}">Open</button></div></div>`).join("")}</div>
+    <div class="note gray" style="margin-top:16px"><span>Capability names come from the team's plan (PR #29). <span class="badge b-live">Exists today</span> marks the ones already in Pawtograder; the rest are proposed.</span></div>
+  </main></div>`;
+}
+
+function diffFromGrader(r) {
+  if (r.kind !== "custom") return { add: [], drop: [] };
+  const g = role("grader").caps;
+  return { add: [...r.caps].filter(c => !g.has(c)), drop: [...g].filter(c => !r.caps.has(c)) };
+}
+
+function screenRoles() {
+  const mine = roleOf(S.me);
+  if (!can("manage_roles")) {
+    return `<div class="page">${sideSettings("roles")}<main class="main">
+      <div class="head"><div><div class="crumb">Course Settings</div><h1>Roles & Capabilities</h1></div></div>
+      <div class="note amber"><span>Only instructors can change roles. You're signed in as <b>${esc(me().name)}</b>, whose role is <b>${esc(mine.name)}</b>.</span></div>
+      <div class="card" style="margin-top:14px"><div class="pad"><h2>What your role can do</h2>
+      <div class="chips" style="margin-top:10px">${ALL_CAPS.filter(c => mine.caps.has(c)).map(c => `<span class="chip" style="padding-left:9px">${esc(CAP_BY_ID[c].label)}</span>`).join("")}</div></div></div>
+    </main></div>`;
+  }
+  const r = role(S.selectedRole);
+  const members = S.people.filter(p => p.role === r.id);
+  const locked = r.kind === "fixed";
+  const diff = diffFromGrader(r);
+  const others = S.people.filter(p => p.role !== r.id && p.role !== "instructor");
+  const roleList = S.roles.map(x => {
+    const n = S.people.filter(p => p.role === x.id).length;
+    const kind = x.kind === "fixed" ? "Fixed · every capability" : x.kind === "default" ? "Default for new TAs · editable" : `Custom · copy of ${x.base}`;
+    return `<button type="button" class="roleitem ${x.id === r.id ? "on" : ""}" data-act="role" data-id="${x.id}">
+      <span class="t"><span>${esc(x.name)}</span><span class="badge b-gray num">${x.caps.size}</span></span>
+      <span class="s">${esc(kind)} · ${n} ${n === 1 ? "person" : "people"}</span></button>`;
+  }).join("");
+
+  const areas = CAPS.map(a => {
+    const rows = a.items.map(c => {
+      const on = r.caps.has(c.id);
+      const dis = locked || (c.instructorOnly && r.kind !== "fixed");
+      const changed = r.kind === "custom" && (diff.add.includes(c.id) || diff.drop.includes(c.id));
+      const tags = [
+        c.live ? '<span class="badge b-live">Exists today</span>' : "",
+        c.isNew ? '<span class="badge b-new">From user study</span>' : "",
+        c.sensitive ? '<span class="badge b-amber">Sensitive view</span>' : "",
+        changed ? `<span class="badge ${diff.add.includes(c.id) ? "b-blue" : "b-red"}">${diff.add.includes(c.id) ? "Added" : "Removed"}</span>` : "",
+      ].join("");
+      return `<div class="cap ${changed ? "changed" : ""}">
+        <button type="button" class="switch" role="switch" aria-checked="${on}" aria-label="${esc(c.label)}" ${dis ? "disabled" : ""} data-act="cap" data-cap="${c.id}"></button>
+        <div><div class="l">${esc(c.label)} <code class="faint">${c.id}</code></div>${c.desc ? `<div class="d">${esc(c.desc)}</div>` : ""}</div>
+        <div class="tags">${tags}</div></div>`;
+    }).join("");
+    return `<div class="area"><div class="area-h"><span>${esc(a.area)}</span></div>${rows}</div>`;
+  }).join("");
+
+  const header = locked
+    ? `<div class="note gray"><span>The Instructor role always has every capability and can't be edited.</span></div>`
+    : r.kind === "default"
+      ? `<div class="note blue"><span>Every new TA gets <b>Default grader</b>. It starts with what graders can do today, so nothing changes on day one. You can edit it for this course.</span></div>`
+      : `<div class="note blue"><span>Started as a copy of <b>${esc(r.base)}</b>.
+         ${diff.add.length || diff.drop.length ? `Compared with Default grader: <b>${diff.add.length} added</b>, <b>${diff.drop.length} removed</b>.` : "Same as Default grader right now."}</span></div>`;
+
+  return `<div class="page">${sideSettings("roles")}<main class="main">
+    <div class="head"><div><div class="crumb">Course Settings</div><h1>Roles & Capabilities</h1>
+      <p class="muted" style="margin-top:4px">Choose what each kind of staff member can do in this course. The page and the database check the same capability.</p></div>
+      <button type="button" class="btn primary" data-act="newrole">New role</button></div>
+    <div class="grid2">
+      <div class="card" style="overflow:hidden">${roleList}</div>
+      <div>
+        <div class="card"><div class="pad stack">
+          <div class="row" style="justify-content:space-between"><h2>${esc(r.name)}</h2>
+            ${r.kind === "custom" ? `<span class="badge b-blue">Custom role</span>` : r.kind === "default" ? `<span class="badge b-gray">Default role</span>` : `<span class="badge b-gray">Fixed</span>`}</div>
+          ${header}
+          <div class="row" style="flex-wrap:wrap;align-items:center">
+            <span class="muted" style="font-size:13px">People:</span>
+            <div class="chips">${members.length ? members.map(p => `<span class="chip">${av(p.id)}${esc(p.name)}</span>`).join("") : '<span class="faint" style="font-size:13px">Nobody yet</span>'}</div>
+            ${!locked && others.length ? `<label class="sr" for="addp">Add a person to ${esc(r.name)}</label>
+              <select id="addp" class="input sm" style="width:auto" data-act="addperson"><option value="">Add a TA…</option>${others.map(p => `<option value="${p.id}">${esc(p.name)} (now ${esc(roleOf(p.id).name)})</option>`).join("")}</select>` : ""}
+          </div>
+        </div></div>
+        <div class="card">${areas}</div>
+      </div>
+    </div>
+  </main></div>`;
+}
+
+function screenGrading() {
+  const total = sum(S.grading.map(g => sum(g.p.map(x => x.a))));
+  const done = sum(S.grading.map(g => sum(g.p.map(x => x.d))));
+  const canAssign = can("manage_review_assignments");
+  const canGrade = can("grade_submissions");
+  const mine = roleOf(S.me);
+  const myRow = gr(S.me);
+
+  const banner = canAssign && !canGrade
+    ? `<div class="note blue" style="margin-bottom:14px"><span><b>${esc(mine.name)}</b> can assign and reassign grading but can't grade. There's no “Start grading” button for ${esc(firstName(S.me))}.</span></div>`
+    : !canAssign
+      ? `<div class="note gray" style="margin-bottom:14px"><span>You can see who's grading what. Moving work needs <b>Assign and reassign grading</b>, which <b>${esc(mine.name)}</b> doesn't have.</span></div>`
+      : "";
+
+  const rows = S.grading.map(g => {
+    const a = sum(g.p.map(x => x.a)), d = sum(g.p.map(x => x.d)), left = a - d;
+    const behind = pct(d, a) < 30;
+    const inc = sum(g.incoming.map(x => x.n));
+    return `<tr>
+      <td><div class="row">${av(g.id)}<div><div style="font-weight:600">${esc(person(g.id).name)}</div><div class="faint" style="font-size:12px">${esc(roleOf(g.id).name)}</div></div></div></td>
+      ${g.p.map(x => `<td class="num">${x.d} / ${x.a}</td>`).join("")}
+      <td style="min-width:150px">${bar(d, a, behind ? "behind" : "")}<div class="faint num" style="font-size:12px;margin-top:3px">${d} of ${a} done${behind ? ' · <span style="color:#b45309">behind</span>' : ""}</div></td>
+      <td class="num">${left}${inc ? ` <span class="badge b-blue">+${inc} reassigned</span>` : ""}</td>
+      <td class="r"><div class="row" style="justify-content:flex-end;gap:6px">
+        ${canAssign ? `<button type="button" class="btn sm" data-act="viewas" data-id="${g.id}">View as</button>` : ""}
+        ${canAssign ? `<button type="button" class="btn sm" data-act="reassign" data-id="${g.id}" ${left === 0 ? "disabled" : ""}>Reassign</button>` : ""}
+        ${canGrade && g.id === S.me ? `<button type="button" class="btn sm primary" data-act="inert">Start grading</button>` : ""}
+      </div></td></tr>`;
+  }).join("");
+
+  return `<div class="page">${sideAssignment("grading")}<main class="main">
+    <div class="head"><div><div class="crumb">Manage Assignments · HW 4 · Event Scheduler</div><h1>Grading Assignments</h1>
+      <p class="muted" style="margin-top:4px">90 submissions, graded by problem. Grading is due Fri, Nov 20.</p></div>
+      ${canGrade && myRow ? `<button type="button" class="btn primary" data-act="inert">My grading (${sum(rem(myRow))} left)</button>` : ""}</div>
+    ${banner}
+    <div class="stats">
+      <div class="card stat"><div class="k">Reviews done</div><div class="v num">${done} / ${total}</div></div>
+      <div class="card stat"><div class="k">Left</div><div class="v num">${total - done}</div></div>
+      <div class="card stat"><div class="k">TAs grading</div><div class="v num">${S.grading.length}</div></div>
+      <div class="card stat"><div class="k">Overall</div><div class="v num">${pct(done, total)}%</div>${bar(done, total)}</div>
+    </div>
+    <div class="card" style="overflow-x:auto"><table>
+      <thead><tr><th>TA</th><th>${PARTS[0]}</th><th>${PARTS[1]}</th><th>Progress</th><th>Left</th><th class="r">${canAssign ? "Actions" : ""}</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+  </main></div>`;
+}
+
+/* ---------- Reassign ---------- */
+
+function openReassign(id) {
+  const others = S.grading.filter(g => g.id !== id).sort((x, y) => sum(rem(x)) - sum(rem(y)));
+  S.drawer = { from: id, amount: "half", custom: 6, parts: [true, true], to: new Set(others.slice(0, 2).map(g => g.id)), mode: "balance" };
+}
+
+function plan() {
+  const d = S.drawer, from = gr(d.from), r = rem(from);
+  const parts = [0, 1].filter(i => d.parts[i]);
+  const avail = sum(parts.map(i => r[i]));
+  let n = d.amount === "all" ? avail : d.amount === "half" ? Math.ceil(avail / 2) : Math.max(0, Math.min(avail, Number(d.custom) || 0));
+  const pools = parts.map(i => ({ part: i, left: r[i] }));
+  const items = [];
+  while (items.length < n) {
+    let moved = false;
+    for (const pl of pools) if (items.length < n && pl.left > 0) { items.push(pl.part); pl.left--; moved = true; }
+    if (!moved) break;
+  }
+  n = items.length;
+  const recips = S.grading.filter(g => d.to.has(g.id)).map(g => ({ id: g.id, before: sum(rem(g)), got: [0, 0] }));
+  if (recips.length) {
+    items.forEach((part, k) => {
+      let target;
+      if (d.mode === "even") target = recips[k % recips.length];
+      else target = recips.reduce((m, x) => (x.before + sum(x.got) < m.before + sum(m.got) ? x : m));
+      target.got[part]++;
+    });
+  }
+  return { n, avail, recips, fromLeft: sum(r) };
+}
+
+function renderDrawer() {
+  const d = S.drawer;
+  if (!d) return "";
+  const from = gr(d.from), r = rem(from), P = plan();
+  const name = person(d.from).name;
+  const candidates = S.grading.filter(g => g.id !== d.from);
+  const example = P.recips.find(x => x.got[1] > 0);
+  return `<div class="scrim" data-act="closedrawer"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dh">
+    <div class="dh"><div><div class="crumb">HW 4 · Event Scheduler</div><h2 id="dh">Reassign ${esc(name)}'s grading</h2>
+      <p class="muted" style="font-size:13px;margin-top:2px">${esc(firstName(d.from))} has ${P.fromLeft} left: ${r[0]} in ${PARTS[0]}, ${r[1]} in ${PARTS[1]}.</p></div>
+      <button type="button" class="btn sm" data-act="closedrawer" aria-label="Close">Close</button></div>
+    <div class="db">
+      <div class="field"><span class="fl">How much to move</span>
+        ${[["half", `Half of what's left (${Math.ceil(P.avail / 2)})`], ["all", `Everything left (${P.avail})`], ["custom", "A number"]].map(([v, l]) =>
+          `<label class="opt"><input type="radio" name="amt" value="${v}" ${d.amount === v ? "checked" : ""} data-act="amt"> ${esc(l)}
+           ${v === "custom" ? `<input class="input sm num" style="width:70px" type="number" min="0" max="${P.avail}" value="${esc(d.custom)}" data-act="custom" aria-label="Number of reviews to move">` : ""}</label>`).join("")}
+      </div>
+      <div class="field"><span class="fl">Which problems</span>
+        ${PARTS.map((p, i) => `<label class="opt"><input type="checkbox" ${d.parts[i] ? "checked" : ""} data-act="part" data-i="${i}"> ${p} <span class="faint">(${r[i]} left)</span></label>`).join("")}
+      </div>
+      <div class="field"><span class="fl">Give it to</span>
+        ${candidates.map(g => `<label class="opt"><input type="checkbox" ${d.to.has(g.id) ? "checked" : ""} data-act="to" data-id="${g.id}"> ${esc(person(g.id).name)} <span class="faint num">· ${sum(rem(g))} left now</span></label>`).join("")}
+      </div>
+      <div class="field"><span class="fl">How to split it</span>
+        <div class="seg" role="group" aria-label="How to split">
+          <button type="button" aria-pressed="${d.mode === "balance"}" data-act="mode" data-v="balance">Balance by what's left</button>
+          <button type="button" aria-pressed="${d.mode === "even"}" data-act="mode" data-v="even">Split evenly</button>
+        </div>
+      </div>
+      <div class="field"><span class="fl">Preview</span>
+        ${P.recips.length ? `<div class="card" style="overflow:hidden"><table>
+          <thead><tr><th>TA</th><th class="r">Left now</th><th class="r">Gets</th><th class="r">Left after</th></tr></thead>
+          <tbody>${P.recips.map(x => `<tr><td>${esc(person(x.id).name)}</td><td class="r num">${x.before}</td>
+            <td class="r num"><b>+${sum(x.got)}</b> <span class="faint">(${x.got[0]} P1, ${x.got[1]} P2)</span></td><td class="r num">${x.before + sum(x.got)}</td></tr>`).join("")}
+            <tr><td>${esc(name)}</td><td class="r num">${P.fromLeft}</td><td class="r num"><b>−${P.n}</b></td><td class="r num">${P.fromLeft - P.n}</td></tr>
+          </tbody></table></div>` : `<div class="note amber"><span>Pick at least one TA to give the work to.</span></div>`}
+      </div>
+      ${example ? `<div class="note green"><span><b>Nothing goes missing.</b> Each problem is tracked on its own. If ${esc(firstName(d.from))} already marked ${PARTS[0]} complete for a student, that student's ${PARTS[1]} still shows up in ${esc(firstName(example.id))}'s queue as “Needs grading”.</span></div>` : ""}
+    </div>
+    <div class="df"><button type="button" class="btn" data-act="closedrawer">Cancel</button>
+      <button type="button" class="btn primary" data-act="applyreassign" ${P.n && P.recips.length ? "" : "disabled"}>Move ${P.n} ${P.n === 1 ? "review" : "reviews"}</button></div>
+  </aside>`;
+}
+
+function applyReassign() {
+  const d = S.drawer, P = plan();
+  if (!P.n || !P.recips.length) return;
+  const from = gr(d.from);
+  P.recips.forEach(x => {
+    const g = gr(x.id);
+    [0, 1].forEach(i => { g.p[i].a += x.got[i]; from.p[i].a -= x.got[i]; });
+    if (sum(x.got)) g.incoming.push({ from: d.from, n: sum(x.got), got: x.got.slice() });
+  });
+  const to = P.recips.filter(x => sum(x.got)).map(x => `${person(x.id).name} (${sum(x.got)})`).join(", ");
+  addLog(`Moved ${P.n} HW 4 reviews from ${person(d.from).name} to ${to}`);
+  S.drawer = null;
+  render();
+  toast(`Moved ${P.n} reviews from ${person(d.from).name}. It's in the Audit Log.`);
+}
+
+/* ---------- View as ---------- */
+
+function screenViewAs() {
+  if (!can("manage_review_assignments")) {
+    return `<div class="page">${sideAssignment("grading")}<main class="main"><div class="note amber"><span>Viewing as someone else needs <b>Assign and reassign grading</b>. <b>${esc(roleOf(S.me).name)}</b> doesn't have it.</span></div></main></div>`;
+  }
+  const v = S.viewAs;
+  const pick = S.grading.map(g => `<option value="ta:${g.id}" ${v.kind === "ta" && v.id === g.id ? "selected" : ""}>${esc(person(g.id).name)} (TA)</option>`).join("") +
+    `<option value="student:riley" ${v.kind === "student" ? "selected" : ""}>Riley Adams (student)</option>`;
+  const banner = `<div class="viewas" role="region" aria-label="View as">
+    <span>Viewing as <b>${v.kind === "ta" ? esc(person(v.id).name) + " · " + esc(roleOf(v.id).name) : "Riley Adams · Student"}</b>. This is exactly what they see. Read-only, so nothing you click here changes their work.</span>
+    <span class="sp"></span>
+    <label class="sr" for="vapick">View as</label><select id="vapick" class="input sm" style="width:auto;background:#fff" data-act="vapick">${pick}</select>
+    <button type="button" class="btn sm" data-act="go" data-route="grading">Exit view</button></div>`;
+  return banner + (v.kind === "ta" ? viewAsTA(v.id) : viewAsStudent());
+}
+
+function viewAsTA(id) {
+  const g = gr(id), r = roleOf(id);
+  const a = sum(g.p.map(x => x.a)), d = sum(g.p.map(x => x.d));
+  const idx = S.grading.indexOf(g);
+  const incomingByPart = [0, 1].map(i => sum(g.incoming.map(x => x.got[i])));
+  const todo = [];
+  g.p.forEach((x, i) => {
+    for (let j = x.d; j < x.a; j++) {
+      const fromInc = j >= x.a - incomingByPart[i];
+      todo.push({ s: studentName(idx * 17 + j + i * 5 + (fromInc ? 40 : 0)), part: i, inc: fromInc, p1done: i === 1 && fromInc && j % 2 === 0 });
+    }
+  });
+  todo.sort((x, y) => (y.inc - x.inc));
+  const shown = todo.slice(0, 8);
+  const canChange = r.caps.has("change_submitted_grades");
+  const doneRows = [
+    { s: "Riley Adams", part: 0, score: "0 / 10", note: "Missed the pair-programming slot" },
+    { s: studentName(idx * 17 + 1), part: 0, score: "9 / 10", note: "" },
+    { s: studentName(idx * 17 + 2), part: 1, score: "7 / 10", note: "" },
+  ];
+  return `<div class="page full"><main class="main" style="max-width:1100px;margin:0 auto">
+    <div class="head"><div><div class="crumb">${esc(person(id).name)}'s dashboard</div><h1>My grading · HW 4</h1></div></div>
+    <div class="grid2" style="grid-template-columns:minmax(0,1fr) 300px">
+      <div>
+        <div class="card"><div class="pad">
+          <div class="row" style="justify-content:space-between"><h2 class="num">${d} of ${a} done · ${a - d} left</h2><span class="muted">Due Fri, Nov 20</span></div>
+          <div style="margin-top:10px">${bar(d, a, "big")}</div>
+          <div class="row" style="margin-top:12px;gap:22px">${g.p.map((x, i) => `<span class="muted num">${PARTS[i]}: <b style="color:var(--ink)">${x.d} / ${x.a}</b></span>`).join("")}</div>
+        </div></div>
+        <div class="card"><div class="pad" style="padding-bottom:6px"><h2>Up next</h2></div>
+          ${shown.length ? `<table class="queue"><thead><tr><th>Student</th><th>Problem</th><th>Status</th><th class="r"></th></tr></thead><tbody>
+          ${shown.map(t => `<tr><td>${esc(t.s)}</td><td>${PARTS[t.part]}</td><td><span class="badge b-amber">Needs grading</span>
+            ${t.inc ? ' <span class="badge b-blue">Reassigned to you today</span>' : ""}${t.p1done ? ' <span class="badge b-gray">P1 already complete</span>' : ""}</td>
+            <td class="r"><button type="button" class="btn sm" data-act="readonly">Grade</button></td></tr>`).join("")}
+          </tbody></table>${todo.length > shown.length ? `<div class="pad faint" style="padding-top:8px;font-size:13px">and ${todo.length - shown.length} more</div>` : ""}`
+          : `<div class="pad"><div class="note green"><span>All done. Nothing left to grade.</span></div></div>`}
+        </div>
+        <div class="card"><div class="pad" style="padding-bottom:6px"><h2>Submitted grades</h2></div>
+          <table><thead><tr><th>Student</th><th>Problem</th><th>Score</th><th class="r"></th></tr></thead><tbody>
+          ${doneRows.map(x => `<tr><td>${esc(x.s)}${x.note ? `<div class="faint" style="font-size:12px">${esc(x.note)}</div>` : ""}</td><td>${PARTS[x.part]}</td><td class="num">${x.score}</td>
+            <td class="r">${canChange ? `<button type="button" class="btn sm" data-act="readonly">Change grade</button>` : `<span class="faint" style="font-size:12px">Can't change after submitting</span>`}</td></tr>`).join("")}
+          </tbody></table>
+          ${!canChange ? `<div class="pad" style="padding-top:8px"><div class="note gray"><span>${esc(r.name)} doesn't have <b>Change a grade after it's submitted</b>. An instructor can turn it on in Roles & Capabilities.</span></div></div>` : ""}
+        </div>
+      </div>
+      <div class="card"><div class="pad"><h3>What ${esc(firstName(id))} can do</h3><p class="faint" style="font-size:12px;margin-top:2px">${esc(r.name)}</p>
+        <ul style="margin:10px 0 0;padding-left:18px;font-size:13px">${ALL_CAPS.filter(c => r.caps.has(c)).map(c => `<li>${esc(CAP_BY_ID[c].label)}</li>`).join("")}</ul></div></div>
+    </div>
+  </main></div>`;
+}
+
+function viewAsStudent() {
+  return `<div class="page full"><main class="main" style="max-width:860px;margin:0 auto">
+    <div class="head"><div><div class="crumb">Assignments</div><h1>HW 4 · Event Scheduler</h1><p class="muted" style="margin-top:4px">Submitted Nov 10, 8:52 PM · Repo: hw4-riley-adams</p></div></div>
+    <div class="card"><table><thead><tr><th>Part</th><th>Status</th><th class="r">Score</th></tr></thead><tbody>
+      <tr><td>${PARTS[0]}</td><td><span class="badge b-live">Graded</span></td><td class="r num">0 / 10</td></tr>
+      <tr><td>${PARTS[1]}</td><td><span class="badge b-amber">Being graded</span></td><td class="r faint">Not released</td></tr>
+      <tr><td>Autograder</td><td><span class="badge b-live">Passed 18 of 20 tests</span></td><td class="r num">18 / 20</td></tr>
+    </tbody></table></div>
+    <div class="card"><div class="pad row" style="justify-content:space-between"><span class="muted">Think a grade is wrong?</span><button type="button" class="btn sm" data-act="readonly">Request a regrade</button></div></div>
+  </main></div>`;
+}
+
+/* ---------- Rubric ---------- */
+
+function screenRubric() {
+  const edit = can("manage_rubrics");
+  const total = sum(S.rubric.map(c => Number(c.pts) || 0));
+  const why = edit
+    ? (roleOf(S.me).kind === "fixed" ? "" : `<div class="note green" style="margin-bottom:14px"><span>You can edit this rubric because <b>${esc(roleOf(S.me).name)}</b> includes <b>Create and edit rubrics</b>.</span></div>`)
+    : `<div class="note gray" style="margin-bottom:14px"><span>Read-only. <b>${esc(roleOf(S.me).name)}</b> doesn't have <b>Create and edit rubrics</b>. Ask an instructor to add it to your role.</span></div>`;
+  return `<div class="page">${sideAssignment("rubric")}<main class="main">
+    <div class="head"><div><div class="crumb">Manage Assignments · HW 4 · Event Scheduler</div><h1>Configure Rubric</h1>
+      <p class="muted" style="margin-top:4px">${PARTS[0]}. Each criterion gets points. Graders score each one.</p></div>
+      <div class="seg" role="group" aria-label="Rubric editor">
+        <button type="button" aria-pressed="${S.rubricMode === "simple"}" data-act="rmode" data-v="simple">Simple criteria</button>
+        <button type="button" aria-pressed="${S.rubricMode === "advanced"}" data-act="rmode" data-v="advanced">Advanced (YAML)</button></div></div>
+    ${why}
+    <div class="grid2" style="grid-template-columns:minmax(0,1fr) 340px">
+      <div class="card"><div class="pad">
+        ${S.rubricMode === "simple" ? `
+        <div class="crit" style="padding-top:0"><span class="faint" style="font-size:12px">Criterion</span><span class="faint" style="font-size:12px">Points</span><span></span></div>
+        ${S.rubric.map((c, i) => `<div class="crit">
+          <input class="input" value="${esc(c.name)}" aria-label="Criterion ${i + 1}" data-act="rname" data-i="${i}" ${edit ? "" : "disabled"}>
+          <input class="input num" type="number" min="0" value="${esc(c.pts)}" aria-label="Points for criterion ${i + 1}" data-act="rpts" data-i="${i}" ${edit ? "" : "disabled"}>
+          <button type="button" class="btn sm ghost" aria-label="Remove criterion ${i + 1}" data-act="rdel" data-i="${i}" ${edit ? "" : "disabled"}>✕</button></div>`).join("")}
+        <div class="row" style="justify-content:space-between;margin-top:12px">
+          <button type="button" class="btn sm" data-act="radd" ${edit ? "" : "disabled"}>Add criterion</button>
+          <span class="num">Total: <b id="rtotal">${total}</b> points</span></div>`
+        : `<pre class="mono" style="margin:0;white-space:pre-wrap;background:#f6f7f9;border-radius:6px;padding:12px">parts:\n  - name: ${PARTS[0]}\n    criteria:\n${S.rubric.map(c => `      - name: "${esc(c.name)}"\n        total_points: ${esc(c.pts)}\n        checks: [...]`).join("\n")}</pre>`}
+      </div></div>
+      <div class="card"><div class="pad" id="rpreview">${rubricPreview()}</div></div>
+    </div>
+  </main></div>`;
+}
+
+function rubricPreview() {
+  const total = sum(S.rubric.map(c => Number(c.pts) || 0));
+  const got = sum(S.rubric.map((c, i) => Math.min(S.rubricScores[i] ?? 0, Number(c.pts) || 0)));
+  return `<h3>What graders see</h3><p class="faint" style="font-size:12px;margin:2px 0 10px">Grading Riley Adams · ${PARTS[0]}</p>` +
+    S.rubric.map((c, i) => {
+      const max = Math.max(0, Math.min(10, Number(c.pts) || 0));
+      const sel = S.rubricScores[i];
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div style="font-size:13px;font-weight:550;margin-bottom:6px">${esc(c.name || "Untitled criterion")}</div>
+        <div class="scorebtns" role="group" aria-label="Score for ${esc(c.name)}">${Array.from({ length: max + 1 }, (_, k) => `<button type="button" aria-pressed="${sel === k}" data-act="score" data-i="${i}" data-k="${k}">${k}</button>`).join("")}</div></div>`;
+    }).join("") +
+    `<div class="row num" style="justify-content:space-between;margin-top:10px"><span class="muted">Score</span><b>${got} / ${total}</b></div>`;
+}
+
+/* ---------- Audit ---------- */
+
+function screenAudit() {
+  return `<div class="page">${sideSettings("audit")}<main class="main">
+    <div class="head"><div><div class="crumb">Course Settings</div><h1>Audit Log</h1><p class="muted" style="margin-top:4px">Every change to roles and grading assignments, newest first.</p></div></div>
+    <div class="card" style="overflow-x:auto"><table><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>
+    ${S.log.map(l => `<tr><td class="num faint" style="white-space:nowrap">${esc(l.t)}</td><td style="white-space:nowrap">${esc(l.who)}</td><td>${esc(l.what)}</td></tr>`).join("")}
+    </tbody></table></div></main></div>`;
+}
+
+/* ---------- Modal ---------- */
+
+function renderModal() {
+  const m = S.modal;
+  if (!m) return "";
+  const bases = S.roles.filter(r => r.kind !== "fixed");
+  return `<div class="scrim" data-act="closemodal"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mh">
+    <div class="mh"><h2 id="mh">New role</h2><p class="muted" style="font-size:13px;margin-top:4px">A new role starts as a copy. Turn extras on and defaults off after.</p></div>
+    <div class="mb">
+      <div class="field"><label class="fl" for="mname">Name</label><input id="mname" class="input" placeholder="e.g. Lab TA" value="${esc(m.name)}" data-act="mname"></div>
+      <div class="field"><label class="fl" for="mbase">Start as a copy of</label><select id="mbase" class="input" data-act="mbase">${bases.map(r => `<option value="${r.id}" ${m.base === r.id ? "selected" : ""}>${esc(r.name)} (${r.caps.size} capabilities)</option>`).join("")}</select></div>
+    </div>
+    <div class="mf"><button type="button" class="btn" data-act="closemodal">Cancel</button><button type="button" class="btn primary" data-act="createrole">Create role</button></div>
+  </div>`;
+}
+
+/* ---------- Render ---------- */
+
+function render() {
+  renderTour();
+  renderNav();
+  const screens = { home: screenHome, roles: screenRoles, grading: screenGrading, viewas: screenViewAs, rubric: screenRubric, audit: screenAudit };
+  $("#app").innerHTML = (screens[S.route] || screenHome)();
+  $("#overlay").innerHTML = renderDrawer() + renderModal();
+  if (location.hash.slice(1) !== S.route) history.replaceState(null, "", "#" + S.route);
+  syncTop();
+}
+
+function syncTop() {
+  const b = Math.max(0, $("#tour").getBoundingClientRect().bottom);
+  document.documentElement.style.setProperty("--tour", b + "px");
+}
+window.addEventListener("scroll", syncTop, { passive: true });
+window.addEventListener("resize", syncTop);
+
+function focusFirstIn(sel) {
+  const el = $(sel);
+  if (el) { const f = el.querySelector("input, button, select"); if (f) f.focus(); }
+}
+
+/* ---------- Events ---------- */
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-act]");
+  if (!el || el.disabled) return;
+  const act = el.dataset.act;
+  if (["amt", "custom", "part", "to", "mname", "mbase", "addperson", "vapick", "rname", "rpts"].includes(act)) return; // handled by input/change
+
+  switch (act) {
+    case "tour": {
+      const i = Number(el.dataset.i);
+      S.drawer = null; S.modal = null;
+      S.tourStep = i; TOUR[i].go(); render(); window.scrollTo(0, 0);
+      if (S.drawer) focusFirstIn(".drawer");
+      return;
+    }
+    case "nav": {
+      const n = NAV[Number(el.dataset.i)];
+      if (!n.route) { toast(`${n.label} isn't part of this mock.`); return; }
+      S.route = n.route; render(); return;
+    }
+    case "go": S.route = el.dataset.route; render(); window.scrollTo(0, 0); return;
+    case "inert": toast("Not part of this mock."); return;
+    case "readonly": toast("Read-only while viewing as someone else. They'd be able to click this."); return;
+    case "role": S.selectedRole = el.dataset.id; render(); return;
+    case "cap": {
+      const r = role(S.selectedRole), c = el.dataset.cap, on = !r.caps.has(c);
+      on ? r.caps.add(c) : r.caps.delete(c);
+      addLog(`Turned ${on ? "on" : "off"} ${CAP_BY_ID[c].label} for ${r.name}`);
+      render(); toast(`${CAP_BY_ID[c].label}: ${on ? "on" : "off"} for ${r.name}. Saved.`);
+      const sw = document.querySelector(`[data-act="cap"][data-cap="${c}"]`); if (sw) sw.focus();
+      return;
+    }
+    case "newrole": S.modal = { name: "", base: "grader" }; render(); $("#mname").focus(); return;
+    case "closemodal": S.modal = null; render(); return;
+    case "createrole": {
+      const name = S.modal.name.trim() || "New role";
+      const base = role(S.modal.base);
+      const id = "r" + Date.now();
+      S.roles.push({ id, name, kind: "custom", base: base.name, caps: new Set(base.caps) });
+      addLog(`Created the role ${name} as a copy of ${base.name}`);
+      S.modal = null; S.selectedRole = id; render(); toast(`${name} created as a copy of ${base.name}.`); return;
+    }
+    case "reassign": openReassign(el.dataset.id); render(); focusFirstIn(".drawer"); return;
+    case "closedrawer": S.drawer = null; render(); return;
+    case "mode": S.drawer.mode = el.dataset.v; render(); return;
+    case "applyreassign": applyReassign(); return;
+    case "viewas": S.viewAs = { kind: "ta", id: el.dataset.id }; S.route = "viewas"; render(); window.scrollTo(0, 0); return;
+    case "rmode": S.rubricMode = el.dataset.v; render(); return;
+    case "radd": S.rubric.push({ name: "", pts: 1 }); render(); { const ins = document.querySelectorAll('[data-act="rname"]'); ins[ins.length - 1].focus(); } return;
+    case "rdel": S.rubric.splice(Number(el.dataset.i), 1); delete S.rubricScores[el.dataset.i]; render(); return;
+    case "score": S.rubricScores[el.dataset.i] = Number(el.dataset.k); $("#rpreview").innerHTML = rubricPreview(); return;
+  }
+});
+
+document.addEventListener("change", (e) => {
+  const el = e.target, act = el.dataset && el.dataset.act;
+  if (!act) return;
+  if (act === "amt") { S.drawer.amount = el.value; render(); }
+  else if (act === "part") { S.drawer.parts[Number(el.dataset.i)] = el.checked; render(); }
+  else if (act === "to") { el.checked ? S.drawer.to.add(el.dataset.id) : S.drawer.to.delete(el.dataset.id); render(); }
+  else if (act === "custom") { S.drawer.custom = el.value; S.drawer.amount = "custom"; render(); }
+  else if (act === "mbase") { S.modal.base = el.value; }
+  else if (act === "addperson" && el.value) {
+    const p = person(el.value), r = role(S.selectedRole);
+    p.role = r.id; addLog(`Gave ${p.name} the role ${r.name}`); render(); toast(`${p.name} is now ${r.name}.`);
+  }
+  else if (act === "vapick") {
+    const [kind, id] = el.value.split(":"); S.viewAs = { kind, id }; render();
+  }
+});
+
+document.addEventListener("input", (e) => {
+  const el = e.target, act = el.dataset && el.dataset.act;
+  if (act === "mname") S.modal.name = el.value;
+  else if (act === "rname" || act === "rpts") {
+    const c = S.rubric[Number(el.dataset.i)];
+    if (act === "rname") c.name = el.value; else c.pts = el.value;
+    const t = $("#rtotal"); if (t) t.textContent = sum(S.rubric.map(x => Number(x.pts) || 0));
+    $("#rpreview").innerHTML = rubricPreview();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && (S.drawer || S.modal)) { S.drawer = null; S.modal = null; render(); }
+  if (e.key === "Enter" && S.modal && e.target.id === "mname") { e.preventDefault(); document.querySelector('[data-act="createrole"]').click(); }
+});
+
+$("#me").addEventListener("change", (e) => { S.me = e.target.value; S.drawer = null; render(); toast(`Signed in as ${me().name} (${roleOf(S.me).name}).`); });
+
+window.addEventListener("hashchange", () => {
+  const r = location.hash.slice(1);
+  if (r && r !== S.route) { S.route = r; S.drawer = null; render(); }
+});
+
+(function init() {
+  const r = location.hash.slice(1);
+  if (["roles", "grading", "viewas", "rubric", "audit"].includes(r)) S.route = r;
+  render();
+})();
+</script>
+</body>
+</html>
